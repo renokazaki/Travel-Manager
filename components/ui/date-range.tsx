@@ -1,29 +1,26 @@
-"use client";
-
-import * as React from "react";
-import { addDays, format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange as DateRangePrimitive } from "react-day-picker";
-
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import React from "react"
+import { CalendarIcon } from "lucide-react"
+import { DateRange } from "react-day-picker"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/popover"
 
-interface DateRangeProps extends React.HTMLAttributes<HTMLDivElement> {
-  className?: string;
+interface DatePickerWithRangeProps {
+  className?: string
+  date: DateRange | undefined
+  setDate: (date: DateRange | undefined) => void
 }
 
-export function DateRange({ className }: DateRangeProps) {
-  const [date, setDate] = React.useState<DateRangePrimitive>({
-    from: new Date(2025, 6, 15),
-    to: addDays(new Date(2025, 6, 15), 7),
-  });
-
+export function DatePickerWithRange({
+  className,
+  date,
+  setDate,
+}: DatePickerWithRangeProps) {
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -32,7 +29,7 @@ export function DateRange({ className }: DateRangeProps) {
             id="date"
             variant={"outline"}
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-[260px] justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >
@@ -40,14 +37,14 @@ export function DateRange({ className }: DateRangeProps) {
             {date?.from ? (
               date.to ? (
                 <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
+                  {date.from.toLocaleDateString("ja-JP")} -{" "}
+                  {date.to.toLocaleDateString("ja-JP")}
                 </>
               ) : (
-                format(date.from, "LLL dd, y")
+                date.from.toLocaleDateString("ja-JP")
               )
             ) : (
-              <span>Pick a date</span>
+              <span>日付を選択</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -63,5 +60,5 @@ export function DateRange({ className }: DateRangeProps) {
         </PopoverContent>
       </Popover>
     </div>
-  );
+  )
 }
