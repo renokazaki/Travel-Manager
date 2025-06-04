@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { 
   Calendar, 
@@ -10,9 +10,9 @@ import {
   Map, 
   Clock, 
   Receipt, 
-  User,
+  Home,
   Menu,
-  X,
+  ArrowLeft,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -28,7 +28,10 @@ interface NavItem {
 
 export default function Navigation() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(true);
+  const params = useParams();
+  const tripId = params?.id as string;
+  
+  const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -42,71 +45,123 @@ export default function Navigation() {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const navItems: NavItem[] = [
-    {
-      title: "Schedule",
-      ja: "スケジュール",
-      href: "/schedule",
-      icon: <Calendar className="h-5 w-5" />,
-    },
-    {
-      title: "Budget",
-      ja: "予算",
-      href: "/budget",
-      icon: <DollarSign className="h-5 w-5" />,
-    },
-    {
-      title: "Plan",
-      ja: "プラン",
-      href: "/plan",
-      icon: <Map className="h-5 w-5" />,
-    },
-    {
-      title: "Timeline",
-      ja: "タイムライン",
-      href: "/timeline",
-      icon: <Clock className="h-5 w-5" />,
-    },
-    {
-      title: "Settlement",
-      ja: "精算",
-      href: "/settlement",
-      icon: <Receipt className="h-5 w-5" />,
-    },
-    {
-      title: "Profile",
-      ja: "プロフィール",
-      href: "/profile",
-      icon: <User className="h-5 w-5" />,
-    },
-  ];
+  // 動的ルーティング対応のナビゲーションアイテム
+  const getNavItems = (): NavItem[] => {
+    // 旅行詳細ページの場合
+    if (tripId) {
+      return [
+        {
+          title: "Overview",
+          ja: "概要",
+          href: `/trip/${tripId}`,
+          icon: <Home className="h-5 w-5" />,
+        },
+        {
+          title: "Schedule",
+          ja: "スケジュール",
+          href: `/trip/${tripId}/schedule`,
+          icon: <Calendar className="h-5 w-5" />,
+        },
+        {
+          title: "Coordination",
+          ja: "日程調整",
+          href: `/trip/${tripId}/coordination`,
+          icon: <Clock className="h-5 w-5" />,
+        },
+        { 
+          title: "Settlement",
+          ja: "精算",
+          href: `/trip/${tripId}/settlement`,
+          icon: <Receipt className="h-5 w-5" />,
+        },
+        {
+          title: "Back",
+          ja: "戻る",
+          href: `/home`,
+          icon: <ArrowLeft className="h-5 w-5" />,
+        },
+      ];
+    }
 
+    // トップレベルページの場合
+    return [
+      {
+        title: "Dashboard",
+        ja: "ダッシュボード",
+        href: "/",
+        icon: <Home className="h-5 w-5" />,
+      },
+      {
+        title: "My Trip",
+        ja: "マイ旅行",
+        href: "/trip",
+        icon: <Map className="h-5 w-5" />,
+      }
+    ];
+  };
+
+  const navItems = getNavItems();
+
+  // アクティブなパスかどうかを判定
+  const isActivePath = (href: string) => {
+    if (href === pathname) return true;
+    
+    // 旅行概要ページの場合、正確な一致をチェック
+    if (tripId && href === `/trip/${tripId}`) {
+      return pathname === `/trip/${tripId}`;
+    }
+    
+    return false;
+  };
+
+  // モバイルナビゲーション
   if (isMobile) {
     return (
-      <header className="fixed top-0 left-0 right-0 h-16 bg-background border-b border-border z-50 px-4">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-md border-b border-border z-50 px-4">
         <div className="flex items-center justify-between h-full">
-          <h1 className="font-semibold">TripTogether</h1>
+          <div className="flex items-center gap-3">
+            {tripId && (
+              <Link href="/trip">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+            <h1 className="font-semibold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+              {tripId ? "旅行管理" : "TripTogether"}
+            </h1>
+          </div>
+          
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-5 w-5" />
+              <Button variant="outline" size="icon" className="h-8 w-8">
+                <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64">
+            <SheetContent side="right" className="w-72 backdrop-blur-lg bg-white/95 dark:bg-gray-900/95">
               <div className="flex flex-col space-y-2 mt-6">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center space-x-3 px-3 py-2 rounded-md transition-colors hover:bg-muted",
-                      pathname === item.href ? "bg-primary/10 text-primary" : "text-muted-foreground"
+                      "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 hover:bg-muted/50",
+                      isActivePath(item.href) 
+                        ? "bg-gradient-to-r from-blue-50 to-teal-50 dark:from-blue-950/50 dark:to-teal-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800" 
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {item.icon}
+                    <div className={cn(
+                      "p-1.5 rounded-md",
+                      isActivePath(item.href) 
+                        ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400" 
+                        : "bg-muted/50"
+                    )}>
+                      {item.icon}
+                    </div>
                     <div className="flex flex-col">
-                      <span>{item.title}</span>
-                      <span className="text-xs text-muted-foreground">{item.ja}</span>
+                      <span className="font-medium">{item.title}</span>
+                      <span className="text-sm text-muted-foreground">{item.ja}</span>
                     </div>
                   </Link>
                 ))}
@@ -118,39 +173,79 @@ export default function Navigation() {
     );
   }
 
+  // デスクトップナビゲーション
   return (
     <div className={cn(
-      "fixed top-0 left-0 h-screen bg-background border-r border-border pt-20 transition-all duration-300",
-      isOpen ? "w-64" : "w-16"
+      "fixed top-0 left-0 h-screen bg-background/80 backdrop-blur-md border-r border-border pt-6 transition-all duration-300 z-40",
+      isOpen ? "w-72" : "w-16"
     )}>
+      {/* ヘッダー */}
+      <div className="px-4 mb-6">
+        {isOpen ? (
+          <div className="flex items-center gap-3">
+         
+            <h1 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+              {tripId ? "旅行管理" : "TripTogether"}
+            </h1>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">T</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 折りたたみボタン */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-[-20px] top-8 bg-background border border-border rounded-full"
+        className="absolute right-[-16px] top-8 bg-background border border-border rounded-full h-8 w-8 shadow-md hover:shadow-lg transition-all duration-200"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
       </Button>
-      <div className="flex flex-col space-y-2 px-2">
+
+      {/* ナビゲーションメニュー */}
+      <nav className="flex flex-col justify-center space-y-2 px-3">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center space-x-3 px-3 py-2 rounded-md transition-colors hover:bg-muted",
-              pathname === item.href ? "bg-primary/10 text-primary" : "text-muted-foreground"
+              "flex items-center rounded-lg transition-all duration-200 hover:bg-muted/50",
+              isActivePath(item.href) ? "..." : "...",
+              isOpen ? "space-x-3 px-3 py-3" : "justify-center py-3"  // ← この部分を追加
             )}
           >
-            {item.icon}
+            <div className={cn(
+              "p-1.5 rounded-md transition-colors",
+              isActivePath(item.href) 
+                ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400" 
+                : "bg-muted/50 group-hover:bg-muted"
+            )}>
+              {item.icon}
+            </div>
             {isOpen && (
               <div className="flex flex-col">
-                <span>{item.title}</span>
+                <span className="font-medium text-sm">{item.title}</span>
                 <span className="text-xs text-muted-foreground">{item.ja}</span>
               </div>
             )}
           </Link>
         ))}
-      </div>
+      </nav>
+
+      {/* 旅行情報表示（旅行詳細ページの場合） */}
+      {tripId && isOpen && (
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="bg-gradient-to-r from-blue-50 to-teal-50 dark:from-blue-950/30 dark:to-teal-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-xs text-muted-foreground mb-1">現在の旅行</p>
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">旅行ID: {tripId}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

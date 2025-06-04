@@ -29,7 +29,6 @@ export default function RootLayout({
             <main className="flex-1 md:pl-16 pt-16 md:pt-0">
               {children}
             </main>
-            <Navigation />
           </div>
         </ThemeProvider>
       </body>
