@@ -42,6 +42,16 @@ export default function HomePage() {
           >
             デモを体験
           </Link>
+          <Link 
+            href="/ssr-example" 
+            className={buttonVariants({ 
+              size: "lg", 
+              variant: "ghost", 
+              className: "rounded-full font-medium px-8 py-3 text-lg hover:bg-muted transition-all duration-300"
+            })}
+          >
+            SSR実装例
+          </Link>
         </div>
         
         <p className="text-sm text-muted-foreground mt-4">
