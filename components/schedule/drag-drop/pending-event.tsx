@@ -19,11 +19,18 @@ export default function PendingEventCard({ event }: { event: PendingEvent }) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: event.id });
+  } = useSortable({ 
+    id: event.id,
+    // ドラッグの感度を調整
+    animateLayoutChanges: () => false // レイアウト変更時のアニメーションを無効化して軽量化
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    // トランジションを最適化
+    willChange: 'transform',
+    touchAction: 'none'
   };
 
   const Icon = utils.getEventIcon(event.type);
@@ -32,13 +39,15 @@ export default function PendingEventCard({ event }: { event: PendingEvent }) {
   return (
     <div
       ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       style={style}
-      className={`p-3 rounded-lg border border-dashed transition-all duration-200 cursor-grab bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 ${
+      className={`p-3 rounded-lg border border-dashed transition-all duration-100 cursor-grab active:cursor-grabbing bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 ${
         isDragging ? "opacity-30" : "hover:shadow-sm hover:border-solid"
       }`}
     >
       <div className="flex items-start gap-3">
-        <div {...attributes} {...listeners} className="mt-1 cursor-grab active:cursor-grabbing">
+        <div className="mt-1">
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
         

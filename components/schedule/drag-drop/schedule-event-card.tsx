@@ -15,11 +15,18 @@ export default function ScheduledEventCard({ event }: { event: ScheduleEvent }) 
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: event.id });
+  } = useSortable({ 
+    id: event.id,
+    // ドラッグの感度を調整
+    animateLayoutChanges: () => false // レイアウト変更時のアニメーションを無効化して軽量化
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    // トランジションを最適化
+    willChange: 'transform',
+    touchAction: 'none'
   };
 
   const Icon = utils.getEventIcon(event.type);
@@ -28,13 +35,15 @@ export default function ScheduledEventCard({ event }: { event: ScheduleEvent }) 
   return (
     <div
       ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       style={style}
-      className={`p-3 rounded-lg border transition-all duration-200 ${colors} ${
+      className={`p-3 rounded-lg border transition-all duration-100 cursor-grab active:cursor-grabbing ${colors} ${
         isDragging ? "opacity-30" : "hover:shadow-md"
       }`}
     >
       <div className="flex items-start gap-3">
-        <div {...attributes} {...listeners} className="mt-1 cursor-grab active:cursor-grabbing">
+        <div className="mt-1">
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
         
@@ -59,7 +68,7 @@ export default function ScheduledEventCard({ event }: { event: ScheduleEvent }) 
           )}
         </div>
         
-        <div className="flex gap-1">
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="icon" className="h-6 w-6">
             <Edit className="h-3 w-3" />
           </Button>
