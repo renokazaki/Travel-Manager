@@ -128,8 +128,6 @@ export default function CleanScheduleManager({
         delay: 0, // 遅延を完全に排除
         tolerance: 5, // 許容度を上げて小さな動きでも認識しやすくする
       },
-      // ポインターイベントの処理を最適化
-      autoScrollEnabled: false, // 自動スクロールを無効化してパフォーマンス向上
     })
   );
 
