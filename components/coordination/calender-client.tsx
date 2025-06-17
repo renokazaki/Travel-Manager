@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import AvailabilityDialog, { AvailabilityStatus as DialogAvailabilityStatus } from "./availability-dialog";
 
 // 型定義
 interface Member {
@@ -28,7 +29,6 @@ interface ScheduleData {
 
 interface CalendarClientProps {
   scheduleData: ScheduleData;
-  optimalDates: string[];
 }
 
 // 参加状況のアイコンとスタイル
@@ -87,20 +87,17 @@ function CalendarCell({
   date, 
   currentMonth, 
   members, 
-  availabilities, 
-  optimalDates,
+  availabilities,
   onDateClick 
 }: {
   date: Date;
   currentMonth: number;
   members: Member[];
   availabilities: ScheduleData['availabilities'];
-  optimalDates: string[];
   onDateClick: (date: string) => void;
 }) {
   const dateStr = formatDate(date);
   const isCurrentMonth = date.getMonth() === currentMonth;
-  const isOptimal = optimalDates.includes(dateStr);
   
   // 参加状況の集計
   const statusCounts = { available: 0, unavailable: 0, maybe: 0 };
@@ -116,22 +113,15 @@ function CalendarCell({
       className={cn(
         "min-h-[120px] p-2 border-r border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
         !isCurrentMonth && "bg-gray-50 dark:bg-gray-900 text-muted-foreground",
-        isOptimal && isCurrentMonth && "bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700"
       )}
       onClick={() => onDateClick(dateStr)}
     >
       <div className="flex items-center justify-between mb-2">
         <span className={cn(
           "text-sm font-medium",
-          isOptimal && "text-green-700 dark:text-green-300"
         )}>
           {date.getDate()}
         </span>
-        {isOptimal && (
-          <div className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 px-1 py-0.5 rounded">
-            最適
-          </div>
-        )}
       </div>
       
       {/* メンバーの参加状況 */}
@@ -152,7 +142,7 @@ function CalendarCell({
       {/* 参加可能人数サマリー */}
       {(statusCounts.available > 0 || statusCounts.unavailable > 0) && (
         <div className="mt-2 text-xs text-muted-foreground">
-          ✓{statusCounts.available} ✗{statusCounts.unavailable}
+          〇{statusCounts.available} ×{statusCounts.unavailable}
           {statusCounts.maybe > 0 && ` ?${statusCounts.maybe}`}
         </div>
       )}
@@ -161,13 +151,9 @@ function CalendarCell({
 }
 
 // カレンダークライアントコンポーネント
-export default function CalendarClient({ scheduleData, optimalDates }: CalendarClientProps) {
-  // 初期月を最適日程がある月に設定
+export default function CalendarClient({ scheduleData }: CalendarClientProps) {
+  // 初期月を現在の月に設定
   const getInitialDate = () => {
-    if (optimalDates.length > 0) {
-      const firstOptimalDate = new Date(optimalDates[0]);
-      return new Date(firstOptimalDate.getFullYear(), firstOptimalDate.getMonth());
-    }
     return new Date(); // 現在の月
   };
 
@@ -199,85 +185,96 @@ export default function CalendarClient({ scheduleData, optimalDates }: CalendarC
     setCurrentDate(new Date(targetYear, targetMonth));
   };
   
+  // ダイアログの状態管理
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
   // 日付クリック処理
   const handleDateClick = (dateStr: string) => {
     setSelectedDate(dateStr);
-    // TODO: 編集ダイアログを開く処理
-    console.log("Date clicked:", dateStr);
+    setIsDialogOpen(true);
+  };
+  
+  // ダイアログを閉じる
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+  };
+  
+  // 空き状況を保存する
+  const handleSaveAvailability = (status: DialogAvailabilityStatus) => {
+    if (!selectedDate) return;
+    
+    // 実際のアプリケーションではAPIを呼び出してデータを保存
+    console.log(`保存: ${selectedDate} - 状態: ${status}`);
+    
+    // モックデータを更新（実際のアプリケーションではこの部分はサーバーサイドで処理）
+    const currentUserId = "1"; // 仮のユーザーID
+    
+    // 新しいavailabilitiesオブジェクトを作成
+    const updatedAvailabilities = {
+      ...scheduleData.availabilities,
+      [currentUserId]: {
+        ...scheduleData.availabilities[currentUserId],
+        [selectedDate]: status
+      }
+    };
+    
+    // 更新されたデータでUIを更新
+    scheduleData.availabilities = updatedAvailabilities;
   };
 
-  // 最適日程への移動ボタン
-  const OptimalDateNavigation = () => {
-    if (optimalDates.length === 0) return null;
-
-    return (
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">最適日程:</span>
-        {optimalDates.slice(0, 3).map(date => {
-          const optimalDate = new Date(date);
-          return (
-            <Button
-              key={date}
-              variant="outline"
-              size="sm"
-              onClick={() => jumpToMonth(optimalDate.getFullYear(), optimalDate.getMonth())}
-              className="text-xs h-7"
-            >
-              {optimalDate.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-            </Button>
-          );
-        })}
-        {optimalDates.length > 3 && (
-          <span className="text-muted-foreground">他{optimalDates.length - 3}件</span>
-        )}
-      </div>
-    );
-  };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <CardTitle className="text-xl">
-            {year}年 {monthNames[month]}
-          </CardTitle>
-          <div className="flex items-center gap-4">
-            <OptimalDateNavigation />
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToNextMonth}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="text-xl">
+              {year}年 {monthNames[month]}
+            </CardTitle>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToNextMonth}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        {/* カレンダーグリッド */}
-        <div className="grid grid-cols-7">
-          {/* 曜日ヘッダー */}
-          {dayNames.map(day => (
-            <div key={day} className="p-3 text-center font-medium bg-gray-100 dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700">
-              {day}
-            </div>
-          ))}
-          
-          {/* 日付セル */}
-          {daysInMonth.map((date, index) => (
-            <CalendarCell
-              key={index}
-              date={date}
-              currentMonth={month}
-              members={scheduleData.members}
-              availabilities={scheduleData.availabilities}
-              optimalDates={optimalDates}
-              onDateClick={handleDateClick}
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="p-0">
+          {/* カレンダーグリッド */}
+          <div className="grid grid-cols-7">
+            {/* 曜日ヘッダー */}
+            {dayNames.map(day => (
+              <div key={day} className="p-3 text-center font-medium bg-gray-100 dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700">
+                {day}
+              </div>
+            ))}
+            
+            {/* 日付セル */}
+            {daysInMonth.map((date, index) => (
+              <CalendarCell
+                key={index}
+                date={date}
+                currentMonth={month}
+                members={scheduleData.members}
+                availabilities={scheduleData.availabilities}
+                onDateClick={handleDateClick}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* 空き状況登録ダイアログ */}
+      <AvailabilityDialog
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+        onSave={handleSaveAvailability}
+        selectedDate={selectedDate}
+      />
+    </>
   );
 }
