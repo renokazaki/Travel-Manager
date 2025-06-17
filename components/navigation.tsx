@@ -94,7 +94,7 @@ export default function Navigation() {
       {
         title: "My Trip",
         ja: "マイ旅行",
-        href: "/trip",
+        href: "/home",
         icon: <Map className="h-5 w-5" />,
       }
     ];
