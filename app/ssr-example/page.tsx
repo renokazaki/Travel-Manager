@@ -135,7 +135,7 @@ function DestinationsList() {
 }
 
 // メインページコンポーネント
-export default function SSRExamplePage() {
+export default async function SSRExamplePage() {
   return (
     <div className="container px-4 py-12 max-w-7xl mx-auto">
       <div className="flex items-center justify-center mb-8">
