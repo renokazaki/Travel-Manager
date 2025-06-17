@@ -7,6 +7,8 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  defaultDropAnimationSideEffects,
+  MeasuringStrategy,
 } from "@dnd-kit/core";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,7 +61,7 @@ const DragOverlay_Item = ({ item }: { item: ScheduleEvent | PendingEvent }) => {
       } opacity-90 transform rotate-2 scale-105 shadow-xl`}
     >
       <div className="flex items-start gap-3">
-        <div className="mt-1">
+        <div className="flex items-center mt-1">
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
 
@@ -117,11 +119,17 @@ export default function CleanScheduleManager({
     removeDay,
   } = useDragAndDropLogic(scheduleData, onDataChange);
 
+  // センサーの最適化：応答性を高めるために設定を調整
   const sensors = useSensors(
     useSensor(PointerSensor, {
+      // ドラッグ開始の設定を最適化して即座に反応するようにする
       activationConstraint: {
-        distance: 8,
+        distance: 1, // 最小限の動きでドラッグ開始（値を小さくして即座に反応）
+        delay: 0, // 遅延を完全に排除
+        tolerance: 5, // 許容度を上げて小さな動きでも認識しやすくする
       },
+      // ポインターイベントの処理を最適化
+      autoScrollEnabled: false, // 自動スクロールを無効化してパフォーマンス向上
     })
   );
 
@@ -154,13 +162,7 @@ export default function CleanScheduleManager({
         <p className="text-muted-foreground">
           ドラッグ&ドロップでスケジュールを作成し、新しい日程を追加できます
         </p>
-        {activeId && (
-          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-700">
-              🎯 ドラッグ中: {activeItem?.title}
-            </p>
-          </div>
-        )}
+  
       </div>
 
       <DndContext
@@ -169,6 +171,20 @@ export default function CleanScheduleManager({
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        // パフォーマンス最適化のための設定
+        measuring={{
+          droppable: {
+            strategy: MeasuringStrategy.Always, // 常に正確な測定を行う
+          },
+        }}
+        // ドロップアニメーションの最適化
+        {...{
+          dropAnimation: {
+            duration: 150, // アニメーション時間を短縮
+            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)', // よりスムーズなイージング
+            sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
+          }
+        }}
       >
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* スケジュール表示エリア */}
@@ -197,7 +213,20 @@ export default function CleanScheduleManager({
         </div>
 
         {/* ドラッグオーバーレイ */}
-        <DragOverlay>
+        <DragOverlay
+          // オーバーレイのアニメーションを最適化
+          dropAnimation={{
+            duration: 100, // より短いアニメーション時間で即座に反応
+            easing: 'cubic-bezier(0.2, 0.6, 0.4, 1.0)', // より直線的なイージングで高速化
+          }}
+          // レンダリングパフォーマンスを最大限に改善
+          style={{
+            transformOrigin: '0 0',
+            willChange: 'transform',
+            zIndex: 1000,
+            transition: 'none', // トランジションを無効化して即時反映
+          }}
+        >
           {activeItem ? <DragOverlay_Item item={activeItem} /> : null}
         </DragOverlay>
       </DndContext>

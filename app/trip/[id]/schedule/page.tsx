@@ -319,9 +319,7 @@ function ScheduleHeader({ tripName, pendingCount }: { tripName: string; pendingC
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <div className="text-sm text-muted-foreground">
-          候補: <span className="font-medium text-blue-600">{pendingCount}件</span>
-        </div>
+      
         <AddEventDialog 
           triggerButton={
             <Button className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700">
