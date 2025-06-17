@@ -36,7 +36,7 @@ const travelGroups = [
     date: "2025年12月24日 - 12月27日",
     members: 8,
     image: "/images/hokkaido.jpg",
-    status: "提案"
+    status: "計画中"
   }
 ];
 
@@ -65,14 +65,6 @@ export default function Home() {
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">マイページ</h1>
           <p className="text-muted-foreground">旅行計画と友達を管理</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
-          <Button variant="outline" size="icon">
-            <Settings className="h-5 w-5" />
-          </Button>
         </div>
       </div>
 
@@ -242,34 +234,6 @@ export default function Home() {
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* 統計情報 */}
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">計画中の旅行</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{travelGroups.filter(g => g.status === "計画中").length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">友達</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{friends.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">完了した旅行</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">12</div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
