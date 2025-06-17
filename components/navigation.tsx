@@ -121,7 +121,7 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-3">
             {tripId && (
-              <Link href="/trip">
+              <Link href="/home">
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>

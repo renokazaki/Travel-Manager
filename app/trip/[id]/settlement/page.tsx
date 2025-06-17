@@ -2,204 +2,354 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { 
-  Calculator,
-  DollarSign,
-  Users,
   Receipt,
   ArrowRight,
   CheckCircle2,
   AlertCircle,
-  Plus,
-  Minus,
   Edit,
-  Trash2
+  CreditCard,
+  Clock,
+  UserCheck
 } from "lucide-react";
 import { Trip, tripData } from "@/lib/mockdeta";
+import { SettlementActions } from "@/components/settlement/settlementActions";
+import { AddExpenseModal } from "@/components/settlement/addExpenseModal";
+
+// データ型定義
+interface PaymentRecord {
+  id: string;
+  title: string;
+  amount: number;
+  paidBy: string;
+  paidFor: string[]; // 誰の分を支払ったか
+  category: string;
+  date: string;
+  description?: string;
+  isSettled: boolean;
+}
+
+interface SettlementTransaction {
+  id: string;
+  from: string;
+  to: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'confirmed';
+  paymentMethod?: string;
+  completedAt?: string;
+  relatedPayments: string[]; // 関連する支払いID
+}
 
 // データ取得関数
 async function getTripData(tripId: string): Promise<Trip | null> {
   return tripData[tripId] || null;
 }
 
-// 精算データのモック
-const mockSettlementData = {
-  expenses: [
+// モックデータ
+const mockPaymentData = {
+  payments: [
     {
-      id: "exp-1",
-      title: "ホテル宿泊費",
+      id: "pay-1",
+      title: "ホテル宿泊費（全員分）",
       amount: 24000,
       paidBy: "田中太郎",
-      participants: ["田中太郎", "佐藤花子", "鈴木一郎", "高橋和子"],
+      paidFor: ["田中太郎", "佐藤花子", "鈴木一郎", "高橋和子"],
+      category: "宿泊",
       date: "2025-07-15",
-      category: "宿泊"
+      description: "グランドホテル 2泊分",
+      isSettled: false
     },
     {
-      id: "exp-2", 
-      title: "レンタカー代",
+      id: "pay-2", 
+      title: "レンタカー代（全員分）",
       amount: 8000,
       paidBy: "佐藤花子",
-      participants: ["田中太郎", "佐藤花子", "鈴木一郎", "高橋和子"],
+      paidFor: ["田中太郎", "佐藤花子", "鈴木一郎", "高橋和子"],
+      category: "交通",
       date: "2025-07-15",
-      category: "交通"
+      description: "3日間レンタル",
+      isSettled: false
     },
     {
-      id: "exp-3",
-      title: "ディナー代",
+      id: "pay-3",
+      title: "ディナー代（3人分）",
       amount: 12000,
       paidBy: "鈴木一郎", 
-      participants: ["田中太郎", "佐藤花子", "鈴木一郎"],
+      paidFor: ["田中太郎", "佐藤花子", "鈴木一郎"],
+      category: "食事",
       date: "2025-07-15",
-      category: "食事"
+      description: "イタリアンレストラン",
+      isSettled: false
     },
     {
-      id: "exp-4",
-      title: "お土産代",
-      amount: 6000,
-      paidBy: "高橋和子",
-      participants: ["高橋和子"],
-      date: "2025-07-16",
-      category: "個人"
-    }
-  ],
-  settlements: [
-    {
-      from: "佐藤花子",
-      to: "田中太郎", 
+      id: "pay-4",
+      title: "観光地入場料（全員分）",
       amount: 4000,
-      status: "未精算" as const
-    },
-    {
-      from: "鈴木一郎",
-      to: "田中太郎",
-      amount: 2000,
-      status: "完了" as const
-    },
-    {
-      from: "高橋和子", 
-      to: "田中太郎",
-      amount: 6000,
-      status: "未精算" as const
+      paidBy: "高橋和子",
+      paidFor: ["田中太郎", "佐藤花子", "鈴木一郎", "高橋和子"],
+      category: "観光",
+      date: "2025-07-16",
+      description: "美術館入場料",
+      isSettled: false
     }
-  ]
+  ] as PaymentRecord[]
 };
 
-// カテゴリの色を取得
+// ユーティリティ関数
 function getCategoryColor(category: string) {
   const colors = {
-    宿泊: 'bg-blue-100 text-blue-800',
-    交通: 'bg-green-100 text-green-800', 
-    食事: 'bg-amber-100 text-amber-800',
-    個人: 'bg-purple-100 text-purple-800',
-    その他: 'bg-gray-100 text-gray-800'
+    宿泊: 'bg-blue-100 text-blue-800 border-blue-200',
+    交通: 'bg-green-100 text-green-800 border-green-200', 
+    食事: 'bg-amber-100 text-amber-800 border-amber-200',
+    観光: 'bg-purple-100 text-purple-800 border-purple-200',
+    その他: 'bg-gray-100 text-gray-800 border-gray-200'
   };
   return colors[category as keyof typeof colors] || colors.その他;
 }
 
-// ステータスの色を取得
 function getStatusColor(status: string) {
   switch (status) {
-    case '完了': return 'bg-green-100 text-green-800';
-    case '未精算': return 'bg-red-100 text-red-800';
-    case '確認中': return 'bg-yellow-100 text-yellow-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+    case 'pending': return 'bg-red-100 text-red-800 border-red-200';
+    case 'confirmed': return 'bg-blue-100 text-blue-800 border-blue-200';
+    default: return 'bg-gray-100 text-gray-800 border-gray-200';
   }
 }
 
-// 精算計算
-function calculateSettlement(expenses: typeof mockSettlementData.expenses, members: string[]) {
-  const memberBalances: Record<string, number> = {};
-  
-  // 各メンバーの初期残高を0に設定
-  members.forEach(member => {
-    memberBalances[member] = 0;
-  });
+function getStatusText(status: string) {
+  switch (status) {
+    case 'completed': return '精算完了';
+    case 'pending': return '精算待ち';
+    case 'confirmed': return '確認済み';
+    default: return '不明';
+  }
+}
 
-  // 支出を計算
-  expenses.forEach(expense => {
-    const perPersonAmount = expense.amount / expense.participants.length;
+// 支払い記録から精算取引を自動生成する関数
+function generateSettlementTransactions(payments: PaymentRecord[]): SettlementTransaction[] {
+  const settlements: SettlementTransaction[] = [];
+  let settlementIdCounter = 1;
+
+  payments.forEach(payment => {
+    const perPersonAmount = payment.amount / payment.paidFor.length;
     
-    // 支払った人にプラス
-    memberBalances[expense.paidBy] += expense.amount;
-    
-    // 参加者全員からマイナス
-    expense.participants.forEach(participant => {
-      memberBalances[participant] -= perPersonAmount;
+    // 支払った人以外の参加者に対して精算取引を生成
+    payment.paidFor.forEach(person => {
+      if (person !== payment.paidBy) {
+        settlements.push({
+          id: `set-${settlementIdCounter++}`,
+          from: person,
+          to: payment.paidBy,
+          amount: Math.round(perPersonAmount),
+          status: payment.isSettled ? 'completed' : 'pending',
+          relatedPayments: [payment.id],
+          ...(payment.isSettled && {
+            completedAt: new Date().toISOString(),
+            paymentMethod: "現金" // デフォルト値
+          })
+        });
+      }
     });
   });
 
-  return memberBalances;
+  return settlements;
 }
 
-// 支出項目コンポーネント
-function ExpenseItem({ expense }: { expense: typeof mockSettlementData.expenses[0] }) {
+// 精算取引を統合する関数（同じペア間の取引をまとめる）
+function consolidateSettlements(settlements: SettlementTransaction[]): SettlementTransaction[] {
+  const consolidatedMap = new Map<string, SettlementTransaction>();
+
+  settlements.forEach(settlement => {
+    const key = `${settlement.from}-${settlement.to}`;
+    
+    if (consolidatedMap.has(key)) {
+      const existing = consolidatedMap.get(key)!;
+      existing.amount += settlement.amount;
+      existing.relatedPayments.push(...settlement.relatedPayments);
+      // ステータスは最も進んでいないものを採用
+      if (existing.status === 'completed' && settlement.status !== 'completed') {
+        existing.status = settlement.status;
+        delete existing.completedAt;
+        delete existing.paymentMethod;
+      }
+    } else {
+      consolidatedMap.set(key, { ...settlement });
+    }
+  });
+
+  return Array.from(consolidatedMap.values());
+}
+
+// 支払い記録コンポーネント
+function PaymentRecord({ payment }: { payment: PaymentRecord }) {
+  const perPersonAmount = payment.amount / payment.paidFor.length;
+  
   return (
-    <div className="flex items-start justify-between p-4 border rounded-lg">
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-2">
-          <h4 className="font-medium">{expense.title}</h4>
-          <Badge className={getCategoryColor(expense.category)} variant="secondary">
-            {expense.category}
-          </Badge>
+    <div className={`p-4 border rounded-lg transition-all hover:shadow-md ${
+      payment.isSettled ? 'bg-green-50 border-green-200' : 'bg-white'
+    }`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <h4 className="font-semibold text-lg">{payment.title}</h4>
+            <Badge className={getCategoryColor(payment.category)} variant="outline">
+              {payment.category}
+            </Badge>
+            {payment.isSettled && (
+              <Badge className="bg-green-100 text-green-800 border-green-200" variant="outline">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                精算済み
+              </Badge>
+            )}
+          </div>
+          {payment.description && (
+            <p className="text-sm text-muted-foreground mb-2">{payment.description}</p>
+          )}
         </div>
-        <p className="text-sm text-muted-foreground mb-1">
-          支払い: {expense.paidBy}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          参加者: {expense.participants.join(', ')}
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {expense.date}
-        </p>
+        <div className="text-right">
+          <p className="text-2xl font-bold text-primary">¥{payment.amount.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground">
+            1人 ¥{Math.round(perPersonAmount).toLocaleString()}
+          </p>
+        </div>
       </div>
-      <div className="text-right">
-        <p className="text-lg font-bold">¥{expense.amount.toLocaleString()}</p>
-        <p className="text-sm text-muted-foreground">
-          1人 ¥{Math.round(expense.amount / expense.participants.length).toLocaleString()}
-        </p>
-        <div className="flex gap-1 mt-2">
-          <Button variant="ghost" size="icon" className="h-6 w-6">
-            <Edit className="h-3 w-3" />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground mb-1">支払い者</p>
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-blue-600" />
+            <span className="font-medium">{payment.paidBy}</span>
+          </div>
+        </div>
+        
+        <div>
+          <p className="text-sm font-medium text-muted-foreground mb-1">対象者（{payment.paidFor.length}人）</p>
+          <div className="flex flex-wrap gap-1">
+            {payment.paidFor.map((person, index) => (
+              <Badge 
+                key={index} 
+                variant={person === payment.paidBy ? "default" : "secondary"}
+                className="text-xs"
+              >
+                {person}
+                {person === payment.paidBy && " (支払)"}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 自動生成された精算取引の表示 */}
+      <div className="mt-4 pt-3 border-t">
+        <p className="text-sm font-medium text-muted-foreground mb-2">自動生成された精算</p>
+        <div className="space-y-1">
+          {payment.paidFor
+            .filter(person => person !== payment.paidBy)
+            .map((person, index) => (
+              <div key={index} className="flex justify-between items-center text-sm bg-blue-50 p-2 rounded">
+                <span>
+                  <span className="font-medium">{person}</span>
+                  <ArrowRight className="inline mx-1 h-3 w-3" />
+                  <span className="font-medium">{payment.paidBy}</span>
+                </span>
+                <span className="font-bold text-blue-600">
+                  ¥{Math.round(perPersonAmount).toLocaleString()}
+                </span>
+              </div>
+            ))}
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between mt-4 pt-3 border-t">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          {payment.date}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm">
+            <Edit className="h-4 w-4 mr-1" />
+            編集
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500">
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          {!payment.isSettled && (
+            <SettlementActions paymentId={payment.id} />
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-// 精算項目コンポーネント
-function SettlementItem({ settlement }: { settlement: typeof mockSettlementData.settlements[0] }) {
+// 精算取引コンポーネント
+function SettlementTransaction({ settlement }: { settlement: SettlementTransaction }) {
   return (
-    <div className={`flex items-center justify-between p-4 border rounded-lg ${
-      settlement.status === '完了' ? 'bg-green-50' : 'bg-white'
+    <div className={`p-4 border rounded-lg transition-all hover:shadow-md ${
+      settlement.status === 'completed' 
+        ? 'bg-green-50 border-green-200' 
+        : settlement.status === 'confirmed'
+        ? 'bg-blue-50 border-blue-200'
+        : 'bg-white'
     }`}>
-      <div className="flex items-center gap-3">
-        {settlement.status === '完了' ? (
-          <CheckCircle2 className="h-5 w-5 text-green-600" />
-        ) : (
-          <AlertCircle className="h-5 w-5 text-red-600" />
-        )}
-        <div>
-          <p className="font-medium">
-            {settlement.from}
-            <ArrowRight className="inline mx-2 h-4 w-4" />
-            {settlement.to}
-          </p>
-          <Badge className={getStatusColor(settlement.status)} variant="secondary">
-            {settlement.status}
-          </Badge>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          {settlement.status === 'completed' ? (
+            <CheckCircle2 className="h-6 w-6 text-green-600" />
+          ) : settlement.status === 'confirmed' ? (
+            <UserCheck className="h-6 w-6 text-blue-600" />
+          ) : (
+            <AlertCircle className="h-6 w-6 text-red-600" />
+          )}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-semibold">{settlement.from}</span>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <span className="font-semibold">{settlement.to}</span>
+            </div>
+            <Badge className={getStatusColor(settlement.status)} variant="outline">
+              {getStatusText(settlement.status)}
+            </Badge>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xl font-bold">¥{settlement.amount.toLocaleString()}</p>
+          {settlement.paymentMethod && (
+            <p className="text-xs text-muted-foreground">{settlement.paymentMethod}</p>
+          )}
         </div>
       </div>
-      <div className="text-right">
-        <p className="text-lg font-bold">¥{settlement.amount.toLocaleString()}</p>
-        {settlement.status === '未精算' && (
-          <Button size="sm" className="mt-2">
-            精算完了
+
+      {/* 関連支払いの表示 */}
+      <div className="mb-3">
+        <p className="text-xs text-muted-foreground mb-1">関連する支払い:</p>
+        <div className="flex flex-wrap gap-1">
+          {settlement.relatedPayments.map((paymentId, index) => (
+            <Badge key={index} variant="outline" className="text-xs">
+              {paymentId}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      
+      {settlement.completedAt && (
+        <div className="text-xs text-muted-foreground mb-3">
+          完了日時: {new Date(settlement.completedAt).toLocaleString('ja-JP')}
+        </div>
+      )}
+      
+      <div className="flex justify-end gap-2">
+        {settlement.status === 'pending' && (
+          <>
+            <Button variant="outline" size="sm">
+              督促
+            </Button>
+            <Button size="sm">
+              完了マーク
+            </Button>
+          </>
+        )}
+        {settlement.status === 'confirmed' && (
+          <Button size="sm">
+            精算確定
           </Button>
         )}
       </div>
@@ -226,33 +376,35 @@ export default async function TripSettlement({
     notFound();
   }
 
-  const expenses = mockSettlementData.expenses;
-  const settlements = mockSettlementData.settlements;
+  const payments = mockPaymentData.payments;
   const memberNames = trip.members.map(m => m.name);
-  const balances = calculateSettlement(expenses, memberNames);
   
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const pendingSettlements = settlements.filter(s => s.status === '未精算');
+  // 支払い記録から精算取引を自動生成
+  const generatedSettlements = generateSettlementTransactions(payments);
+  const consolidatedSettlements = consolidateSettlements(generatedSettlements);
+  
+  const totalExpenses = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const pendingSettlements = consolidatedSettlements.filter(s => s.status === 'pending');
+  const unsettledPayments = payments.filter(p => !p.isSettled);
 
   return (
     <div className="space-y-6">
       {/* ヘッダー */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{trip.name} - 精算</h1>
-          <p className="text-muted-foreground">旅行の支出と精算を管理</p>
+          <h1 className="text-3xl font-bold">{trip.name} - 精算管理</h1>
+          <p className="text-muted-foreground">
+            支払い記録を追加すると、自動で精算取引が生成されます
+          </p>
         </div>
-        <Button className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700">
-          <Plus className="mr-2 h-4 w-4" />
-          支出を追加
-        </Button>
+        <AddExpenseModal memberNames={memberNames} />
       </div>
 
-      {/* サマリー */}
+      {/* サマリーカード */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="flex items-center p-6">
-            <DollarSign className="h-8 w-8 text-green-600 mr-3" />
+            <Receipt className="h-8 w-8 text-blue-600 mr-3" />
             <div>
               <p className="text-2xl font-bold">¥{totalExpenses.toLocaleString()}</p>
               <p className="text-sm text-muted-foreground">総支出</p>
@@ -262,107 +414,85 @@ export default async function TripSettlement({
         
         <Card>
           <CardContent className="flex items-center p-6">
-            <Users className="h-8 w-8 text-blue-600 mr-3" />
+            <AlertCircle className="h-8 w-8 text-amber-600 mr-3" />
             <div>
-              <p className="text-2xl font-bold">¥{Math.round(totalExpenses / memberNames.length).toLocaleString()}</p>
-              <p className="text-sm text-muted-foreground">1人あたり</p>
+              <p className="text-2xl font-bold">{unsettledPayments.length}</p>
+              <p className="text-sm text-muted-foreground">未精算支払い</p>
             </div>
           </CardContent>
         </Card>
         
         <Card>
           <CardContent className="flex items-center p-6">
-            <Calculator className="h-8 w-8 text-red-600 mr-3" />
+            <ArrowRight className="h-8 w-8 text-red-600 mr-3" />
             <div>
               <p className="text-2xl font-bold">{pendingSettlements.length}</p>
-              <p className="text-sm text-muted-foreground">未精算項目</p>
+              <p className="text-sm text-muted-foreground">精算待ち取引</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* メインコンテンツ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 支出一覧 */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* 支払い記録 */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
-              支出一覧
+              支払い記録
             </CardTitle>
-            <CardDescription>旅行での全ての支出記録</CardDescription>
+            <CardDescription>
+              誰が誰の分を支払ったかの詳細記録（精算取引が自動生成されます）
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {expenses.length > 0 ? (
-                expenses.map((expense) => (
-                  <ExpenseItem key={expense.id} expense={expense} />
+              {payments.length > 0 ? (
+                payments.map((payment) => (
+                  <PaymentRecord key={payment.id} payment={payment} />
                 ))
               ) : (
                 <div className="text-center py-8">
                   <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">支出記録がありません</p>
-                  <Button variant="outline" className="mt-4">
-                    最初の支出を追加
-                  </Button>
+                  <p className="text-muted-foreground">まだ支払い記録がありません</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    支払いを追加すると、自動で精算取引が生成されます
+                  </p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* 精算状況 */}
-        <div className="space-y-6">
-          {/* 残高 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                メンバー別残高
-              </CardTitle>
-              <CardDescription>各メンバーの貸し借り状況</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(balances).map(([member, balance]) => (
-                  <div key={member} className="flex items-center justify-between p-3 rounded-lg border">
-                    <span className="font-medium">{member}</span>
-                    <span className={`font-bold ${
-                      balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                      {balance > 0 ? '+' : ''}¥{Math.round(balance).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 精算項目 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ArrowRight className="h-5 w-5" />
-                精算項目
-              </CardTitle>
-              <CardDescription>必要な精算の一覧</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {settlements.length > 0 ? (
-                  settlements.map((settlement, index) => (
-                    <SettlementItem key={index} settlement={settlement} />
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                    <p className="text-muted-foreground">全ての精算が完了しています</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* 精算取引（自動生成） */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ArrowRight className="h-5 w-5" />
+              精算取引（自動生成）
+            </CardTitle>
+            <CardDescription>
+              支払い記録から自動で生成された精算取引
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {consolidatedSettlements.length > 0 ? (
+                consolidatedSettlements.map((settlement) => (
+                  <SettlementTransaction key={settlement.id} settlement={settlement} />
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                  <p className="text-muted-foreground">精算取引がありません</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    支払い記録を追加すると、ここに精算取引が表示されます
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
