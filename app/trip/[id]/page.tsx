@@ -24,6 +24,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Trip, tripData, ScheduleEvent } from "@/lib/mockdeta";
+import Link from "next/link";
 
 // データ取得関数（サーバーサイド）
 async function getTripData(tripId: string): Promise<Trip | null> {
@@ -320,111 +321,6 @@ function ScheduleTimeline({
   );
 }
 
-// ToDoリストコンポーネント
-function TodoList({ todoItems }: { todoItems: typeof mockTodoItems }) {
-  // カテゴリでグループ化
-  const groupedTodos = todoItems.reduce((groups, todo) => {
-    if (!groups[todo.category]) {
-      groups[todo.category] = [];
-    }
-    groups[todo.category].push(todo);
-    return groups;
-  }, {} as Record<string, typeof todoItems>);
-
-  const completedCount = todoItems.filter((item) => item.completed).length;
-  const totalCount = todoItems.length;
-  const completionPercentage =
-    totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-
-  return (
-    <div className="space-y-4">
-      {/* 進捗バー */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">完了済み</span>
-          <span className="font-medium">
-            {completedCount}/{totalCount}
-          </span>
-        </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-          <div
-            className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-500"
-            style={{ width: `${completionPercentage}%` }}
-          />
-        </div>
-      </div>
-
-      {/* カテゴリ別ToDoリスト */}
-      {Object.entries(groupedTodos).map(([category, todos]) => (
-        <div key={category} className="space-y-3">
-          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-            {category}
-          </h4>
-          <div className="space-y-2">
-            {todos.map((todo) => (
-              <div
-                key={todo.id}
-                className="flex items-center gap-3 p-3 rounded-lg border bg-card"
-              >
-                <Checkbox
-                  checked={todo.completed}
-                  className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p
-                      className={`text-sm ${
-                        todo.completed
-                          ? "line-through text-muted-foreground"
-                          : ""
-                      }`}
-                    >
-                      {todo.title}
-                    </p>
-                    <Badge
-                      variant="secondary"
-                      className={`text-xs ${getPriorityColor(todo.priority)}`}
-                    >
-                      {todo.priority === "high"
-                        ? "高"
-                        : todo.priority === "medium"
-                        ? "中"
-                        : "低"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    担当: {todo.assignedTo}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-red-500"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {/* 新しいアイテム追加 */}
-      <div className="border-t pt-4">
-        <Button variant="outline" className="w-full" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          新しいタスクを追加
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 // 静的生成用のパラメータを生成
 export async function generateStaticParams() {
   const tripIds = Object.keys(tripData);
@@ -460,7 +356,7 @@ export default async function TripOverview({
         </div>
         <div>
           <Card>
-            <CardContent className="flex flex-row items-center justify-center text-center p-4">
+            <CardContent className="flex flex-row items-center justify-center text-center px-4 py-2">
               <p className="text-4xl font-bold">{countdown.text}</p>
               <p className="text-muted-foreground">{countdown.subText}</p>
             </CardContent>
@@ -474,7 +370,7 @@ export default async function TripOverview({
           <CardHeader>
             <CardTitle>旅行概要</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full">
@@ -548,7 +444,7 @@ export default async function TripOverview({
       </div>
 
       {/* 旅行スケジュールとタスク管理 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -558,10 +454,13 @@ export default async function TripOverview({
                   ドラッグ&ドロップで調整されたスケジュール
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                編集
-              </Button>
+
+              <Link href={`/trip/${tripId}/schedule`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  編集
+                </Button>
+              </Link>
             </div>
           </CardHeader>
           <CardContent>
@@ -578,16 +477,6 @@ export default async function TripOverview({
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>やることリスト・持ち物</CardTitle>
-            <CardDescription>旅行の準備と持ち物チェック</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <TodoList todoItems={mockTodoItems} />
           </CardContent>
         </Card>
       </div>
