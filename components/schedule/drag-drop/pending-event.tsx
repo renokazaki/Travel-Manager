@@ -10,7 +10,7 @@ import { useMemo } from "react";
 import ScheduledEventCard from "./schedule-event-card";
 import { Button } from "@/components/ui/button";
 
-// 候補イベントカード
+// 候補イベントカード（レスポンシブ対応）
 export default function PendingEventCard({ event }: { event: PendingEvent }) {
   const {
     attributes,
@@ -34,7 +34,6 @@ export default function PendingEventCard({ event }: { event: PendingEvent }) {
   };
 
   const Icon = utils.getEventIcon(event.type);
-  const colors = utils.getEventColors(event.type);
 
   return (
     <div
@@ -42,46 +41,66 @@ export default function PendingEventCard({ event }: { event: PendingEvent }) {
       {...attributes}
       {...listeners}
       style={style}
-      className={`p-3 rounded-lg border border-dashed transition-all duration-100 cursor-grab active:cursor-grabbing bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 ${
+      className={`p-2 sm:p-3 rounded-lg border border-dashed transition-all duration-100 cursor-grab active:cursor-grabbing bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 ${
         isDragging ? "opacity-30" : "hover:shadow-sm hover:border-solid"
       }`}
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-1">
-          <GripVertical className="h-4 w-4 text-gray-400" />
-        </div>
-        
-        <div className="p-1 rounded">
-          <Icon className="h-4 w-4" />
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-medium text-sm">{event.title}</h4>
-            <Badge className={utils.getPriorityColor(event.priority)} variant="secondary">
-              {event.priority === 'high' ? '高' : event.priority === 'medium' ? '中' : '低'}
-            </Badge>
+      {/* モバイル: 縦レイアウト、デスクトップ: 横レイアウト */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-3">
+        {/* ヘッダー部分（アイコン、タイトル、優先度） */}
+        <div className="flex items-center gap-2 lg:gap-3 w-full lg:w-auto">
+          {/* ドラッグハンドル */}
+          <div className="flex-shrink-0">
+            <GripVertical className="h-4 w-4 text-gray-400" />
           </div>
           
-          <p className="text-xs text-muted-foreground">{event.location}</p>
-          
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-            <User className="h-3 w-3" />
-            <span>{event.suggestedBy}</span>
+          {/* アイコン */}
+          <div className="flex-shrink-0 p-1 rounded">
+            <Icon className="h-4 w-4" />
           </div>
           
+          {/* タイトルと優先度バッジ */}
+          <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+            <h4 className="font-medium text-sm truncate max-w-[100px] sm:max-w-none">
+              {event.title}
+            </h4>
+       
+          </div>
+        </div>
+        
+        {/* 詳細情報（モバイルでは下に配置） */}
+        <div className="w-full md:flex-1 lg:min-w-0 pl-6 md:pl-0 space-y-1">
+          {/* 場所 */}
+          <p className="text-xs text-muted-foreground truncate md:break-words">
+            {event.location}
+          </p>
+          
+          {/* 提案者 */}
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{event.suggestedBy}</span>
+          </div>
+          
+          {/* ノート */}
           {event.notes && (
-            <p className="text-xs text-muted-foreground mt-1 italic">{event.notes}</p>
+            <p className="text-xs text-muted-foreground italic line-clamp-2 sm:line-clamp-none break-words">
+              {event.notes}
+            </p>
           )}
         </div>
+        <Badge 
+              className={`${utils.getPriorityColor(event.priority)} flex-shrink-0 whitespace-nowrap`} 
+              variant="secondary"
+            >
+              {event.priority === 'high' ? '高' : event.priority === 'medium' ? '中' : '低'}
+            </Badge>
+            
       </div>
     </div>
   );
-};
+}
 
-
-
-// 日程カード
+// 日程カード（レスポンシブ対応）
 export const DayCard = ({ 
   day, 
   events, 
@@ -103,14 +122,16 @@ export const DayCard = ({
     <Card className={`min-h-[200px] transition-all duration-200 ${
       isOver ? 'ring-2 ring-blue-400 ring-opacity-75 bg-blue-50/50' : ''
     }`}>
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3 sm:pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{utils.formatDate(day.date)}</CardTitle>
+          <CardTitle className="text-base sm:text-lg truncate pr-2">
+            {utils.formatDate(day.date)}
+          </CardTitle>
           {events.length === 0 && (
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-6 w-6 text-red-500"
+              className="h-6 w-6 text-red-500 flex-shrink-0"
               onClick={() => onRemoveDay(day.id)}
             >
               <Trash2 className="h-3 w-3" />
@@ -118,14 +139,16 @@ export const DayCard = ({
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <div ref={setNodeRef}>
           <SortableContext items={eventIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-2 min-h-[120px] p-2 rounded-lg">
               {events.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 text-muted-foreground border-2 border-dashed rounded-lg">
-                  <CalendarDays className="h-8 w-8 mb-2" />
-                  <p className="text-sm">イベントをここにドラッグ</p>
+                  <CalendarDays className="h-6 w-6 sm:h-8 sm:w-8 mb-2" />
+                  <p className="text-xs sm:text-sm text-center px-2">
+                    イベントをここにドラッグ
+                  </p>
                 </div>
               ) : (
                 events.map((event) => (
@@ -140,7 +163,7 @@ export const DayCard = ({
   );
 };
 
-// 候補イベントパネル
+// 候補イベントパネル（レスポンシブ対応）
 export const PendingEventsPanel = ({ 
   events, 
   isOver    
@@ -158,20 +181,22 @@ export const PendingEventsPanel = ({
     <Card className={`sticky top-6 transition-all duration-200 ${
       isOver ? 'ring-2 ring-blue-400 ring-opacity-75 bg-blue-50/50' : ''
     }`}>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Star className="h-5 w-5 text-yellow-500" />
-          候補イベント ({events.length})
+      <CardHeader className="pb-3 sm:pb-4">
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+          <Star className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 flex-shrink-0" />
+          <span className="truncate">候補イベント ({events.length})</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <div ref={setNodeRef}>
           <SortableContext items={eventIds} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3 min-h-[100px] p-2 rounded-lg">
+            <div className="space-y-2 sm:space-y-3 min-h-[100px] p-2 rounded-lg">
               {events.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-20 text-muted-foreground">
-                  <Plus className="h-6 w-6 mb-2" />
-                  <p className="text-sm">候補イベントがありません</p>
+                  <Plus className="h-5 w-5 sm:h-6 sm:w-6 mb-2" />
+                  <p className="text-xs sm:text-sm text-center">
+                    候補イベントがありません
+                  </p>
                 </div>
               ) : (
                 events.map((event) => (
@@ -185,4 +210,3 @@ export const PendingEventsPanel = ({
     </Card>
   );
 };
-

@@ -357,7 +357,7 @@ export default async function TripOverview({
         <div>
           <Card>
             <CardContent className="flex flex-row items-center justify-center text-center px-4 py-2">
-              <p className="text-4xl font-bold">{countdown.text}</p>
+              <p className="text-4xl font-bold text-red-500">{countdown.text}</p>
               <p className="text-muted-foreground">{countdown.subText}</p>
             </CardContent>
           </Card>

@@ -109,7 +109,6 @@ export default function CleanScheduleManager({
 
   const {
     data,
-    activeId,
     overId,
     activeItem,
     handleDragStart,
@@ -184,7 +183,7 @@ export default function CleanScheduleManager({
           }
         }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* スケジュール表示エリア */}
           <div className="lg:col-span-3 space-y-6">
             {data.scheduledDays.map((day) => (
@@ -202,7 +201,7 @@ export default function CleanScheduleManager({
           </div>
 
           {/* 候補イベントパネル */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <PendingEventsPanel
               events={data.pendingEvents}
               isOver={overId === "pending-events"}
