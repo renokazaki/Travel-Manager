@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Plus } from "lucide-react";
 import AddEventDialog from "@/components/schedule/dialog/add-event-dialog";

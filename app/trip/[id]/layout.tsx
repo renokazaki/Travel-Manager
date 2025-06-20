@@ -11,7 +11,7 @@ export default function TripLayout({
       <Navigation />
 
       {/* メインコンテンツ */}
-      <div>{children}</div>
+      <div className="flex-1 md:pl-16 pt-16 md:pt-0">{children}</div>
     </div>
   );
 }

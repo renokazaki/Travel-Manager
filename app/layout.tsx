@@ -26,7 +26,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="flex min-h-screen flex-col">
-            <main className="flex-1 md:pl-16 pt-16 md:pt-0">
+            <main>
               {children}
             </main>
           </div>

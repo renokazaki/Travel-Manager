@@ -201,7 +201,7 @@ export default function Navigation() {
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-[-16px] top-8 bg-background border border-border rounded-full h-8 w-8 shadow-md hover:shadow-lg transition-all duration-200"
+        className="absolute right-[-16px] top-14 bg-background border border-border rounded-full h-8 w-8 shadow-md hover:shadow-lg transition-all duration-200"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}

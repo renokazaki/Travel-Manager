@@ -1,12 +1,12 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { utils } from "./utils/drag-drop-functions";
-import { ScheduleEvent } from "@/lib/mockdeta";
-import { GripVertical,Edit, Trash2 } from "lucide-react";
+import { ScheduleEvent, PendingEvent } from "@/lib/mockdeta";
+import { GripVertical, Edit, Trash2, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-// スケジュール済みイベントカード
+// スケジュール済みイベントカード（再設計版）
 export default function ScheduledEventCard({ event }: { event: ScheduleEvent }) {
   const {
     attributes,
@@ -17,14 +17,12 @@ export default function ScheduledEventCard({ event }: { event: ScheduleEvent }) 
     isDragging,
   } = useSortable({ 
     id: event.id,
-    // ドラッグの感度を調整
-    animateLayoutChanges: () => false // レイアウト変更時のアニメーションを無効化して軽量化
+    animateLayoutChanges: () => false
   });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    // トランジションを最適化
     willChange: 'transform',
     touchAction: 'none'
   };
@@ -42,33 +40,48 @@ export default function ScheduledEventCard({ event }: { event: ScheduleEvent }) 
         isDragging ? "opacity-30" : "hover:shadow-md"
       }`}
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-1">
+      {/* シンプルな横並びレイアウト（全サイズ共通） */}
+      <div className="flex items-center gap-2">
+        {/* 左側：ドラッグハンドル */}
+        <div className="flex mt-0.5">
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
         
-        <div className="p-1 rounded">
+        {/* アイコン */}
+        <div className="flex-shrink-0 p-1 rounded">
           <Icon className="h-4 w-4" />
         </div>
         
+        {/* メインコンテンツエリア */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-medium text-sm">{event.title}</h4>
-            {event.time && (
-              <Badge variant="outline" className="text-xs">{event.time}</Badge>
-            )}
+          {/* タイトル行 */}
+          <div className="flex md:items-center gap-2 mb-1 md:flex-wrap">
+            <h4 className="font-medium text-sm break-words flex-1 min-w-0">
+              {event.title}
+            </h4>
+
           </div>
           
-          <p className="text-xs text-muted-foreground">{event.location}</p>
+          {/* 場所 */}
+          <p className="text-xs text-muted-foreground break-words mb-1">
+            {event.location}
+          </p>
           
+          {/* ノート */}
           {event.notes && (
-            <p className="text-xs text-muted-foreground mt-1 italic">
+            <p className="text-xs text-muted-foreground italic break-words">
               {event.notes}
             </p>
           )}
         </div>
-        
-        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+        <div>
+           {event.time && (
+              <Badge variant="outline" className="text-xs whitespace-nowrap">
+                {event.time}
+              </Badge>
+            )}
+        {/* 右側：アクションボタン */}
+        <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="icon" className="h-6 w-6">
             <Edit className="h-3 w-3" />
           </Button>
@@ -76,7 +89,8 @@ export default function ScheduledEventCard({ event }: { event: ScheduleEvent }) 
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
+        </div>
       </div>
     </div>
   );
-};
+}
