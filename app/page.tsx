@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {  CalendarCheck, DollarSign, Receipt, Plane, MessageSquare, Clock, Brain, Zap, Target, Smartphone, ArrowDown, Play, Code, Database, Shield } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 // リアルタイムタイピングエフェクト
 const TypeWriter = ({ text, delay = 0 }: { text: string; delay?: number }) => {
@@ -159,13 +161,15 @@ export default function InnovativeLanding() {
               </h1>
               
               <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-                もう二度とLINEで「みんないつ空いてる？」って聞かなくていい。
+                もう二度とLINEめんどくさい調整を進めなくていい。
                 <br />
                 <span className="text-purple-400 font-semibold">
                   面倒な調整は全部お任せください。
                 </span>
               </p>
-
+              <Link href="/home">
+            <Button className='hover:from-blue-200 hover:to-purple-200 cursor-pointer'>始める</Button>
+              </Link>
         
             </motion.div>
           </div>
