@@ -9,7 +9,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   CalendarDays,
   MapPin,
@@ -105,49 +104,7 @@ async function getTripSchedule(tripId: string): Promise<ScheduleEvent[]> {
   ];
 }
 
-// ToDoアイテムのモックデータ
-const mockTodoItems = [
-  {
-    id: "todo-1",
-    title: "パスポートの有効期限確認",
-    completed: true,
-    category: "準備",
-    assignedTo: "田中太郎",
-    priority: "high" as const,
-  },
-  {
-    id: "todo-2",
-    title: "海外旅行保険の加入",
-    completed: false,
-    category: "準備",
-    assignedTo: "佐藤花子",
-    priority: "high" as const,
-  },
-  {
-    id: "todo-3",
-    title: "水着",
-    completed: true,
-    category: "持ち物",
-    assignedTo: "鈴木一郎",
-    priority: "medium" as const,
-  },
-  {
-    id: "todo-4",
-    title: "日焼け止め",
-    completed: false,
-    category: "持ち物",
-    assignedTo: "高橋和子",
-    priority: "medium" as const,
-  },
-  {
-    id: "todo-5",
-    title: "レンタカーの予約確認",
-    completed: false,
-    category: "準備",
-    assignedTo: "伊藤誠",
-    priority: "low" as const,
-  },
-];
+
 
 // ステータスバッジの色を取得
 function getStatusColor(status: Trip["status"]) {
