@@ -22,7 +22,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import {  tripData, TripScheduleData } from "@/lib/mockdeta";
+import { tripData, TripScheduleData } from "@/lib/mockdeta";
 import Link from "next/link";
 import { TripScheduleDataType } from "@/types/types";
 import { Trip } from "@/types/types";
@@ -41,8 +41,6 @@ async function getTripSchedule(tripId: string): Promise<TripScheduleDataType[]> 
   // モックデータ
   return TripScheduleData as TripScheduleDataType[];
 }
-
-
 
 // ステータスバッジの色を取得
 function getStatusColor(status: Trip["status"]) {
@@ -106,11 +104,21 @@ function getPriorityColor(priority: string) {
   }
 }
 
-// カウントダウン計算
-function calculateCountdown(startDate: string, endDate: string) {
+// カウントダウン計算（null safety対応）
+function calculateCountdown(startDate: string | undefined, endDate: string | undefined) {
+  // startDateまたはendDateがundefinedの場合のデフォルト値
+  if (!startDate || !endDate) {
+    return { text: "未定", subText: "日程を設定してください" };
+  }
+
   const start = new Date(startDate);
   const end = new Date(endDate);
   const today = new Date();
+
+  // 無効な日付の場合
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return { text: "無効", subText: "日程を確認してください" };
+  }
 
   const daysUntilTrip = Math.ceil(
     (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
@@ -125,6 +133,18 @@ function calculateCountdown(startDate: string, endDate: string) {
   } else {
     return { text: "旅行中", subText: `${tripDuration}日間の旅` };
   }
+}
+
+// 期間計算のヘルパー関数
+function calculateTripDuration(startDate: string | undefined, endDate: string | undefined): number {
+  if (!startDate || !endDate) return 0;
+  
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+  
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 }
 
 // 日付でグループ化されたスケジュール表示コンポーネント
@@ -150,11 +170,23 @@ function ScheduleTimeline({
     <div className="space-y-6">
       {sortedDates.map((date) => {
         const events = groupedEvents[date].sort((a, b) => a.order - b.order);
-        const formattedDate = new Date(date).toLocaleDateString("ja-JP", {
-          month: "long",
-          day: "numeric",
-          weekday: "long",
-        });
+        
+        // 日付のフォーマット（無効な日付の場合の処理）
+        let formattedDate = date;
+        if (date !== "未定") {
+          try {
+            const dateObj = new Date(date);
+            if (!isNaN(dateObj.getTime())) {
+              formattedDate = dateObj.toLocaleDateString("ja-JP", {
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              });
+            }
+          } catch {
+            formattedDate = date;
+          }
+        }
 
         return (
           <div key={date} className="space-y-3">
@@ -162,7 +194,7 @@ function ScheduleTimeline({
               {formattedDate}
             </h3>
             <div className="space-y-2">
-              {events.map((event, index) => {
+              {events.map((event) => {
                 const Icon = getEventIcon(event.type);
                 const colorClass = getEventColor(event.type);
 
@@ -238,6 +270,7 @@ export default async function TripOverview({
   }
 
   const countdown = calculateCountdown(trip.startDate, trip.endDate);
+  const tripDuration = calculateTripDuration(trip.startDate, trip.endDate);
 
   return (
     <div className="space-y-8">
@@ -252,8 +285,10 @@ export default async function TripOverview({
         <div>
           <Card>
             <CardContent className="flex flex-row items-center justify-center text-center px-4 py-2">
-              <p className="text-4xl font-bold text-red-500">{countdown.text}</p>
-              <p className="text-muted-foreground">{countdown.subText}</p>
+              <div className="text-center">
+                <p className="text-4xl font-bold text-red-500">{countdown.text}</p>
+                <p className="text-muted-foreground">{countdown.subText}</p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -273,7 +308,7 @@ export default async function TripOverview({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">日程</p>
-                  <p className="font-medium">{trip.date}</p>
+                  <p className="font-medium">{trip.date || "未定"}</p>
                 </div>
               </div>
 
@@ -283,7 +318,7 @@ export default async function TripOverview({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">目的地</p>
-                  <p className="font-medium">{trip.destination}</p>
+                  <p className="font-medium">{trip.destination || "未定"}</p>
                 </div>
               </div>
 
@@ -293,7 +328,7 @@ export default async function TripOverview({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">参加者</p>
-                  <p className="font-medium">{trip.members.length}人</p>
+                  <p className="font-medium">{trip.members?.length || 0}人</p>
                 </div>
               </div>
 
@@ -304,12 +339,7 @@ export default async function TripOverview({
                 <div>
                   <p className="text-sm text-muted-foreground">期間</p>
                   <p className="font-medium">
-                    {Math.ceil(
-                      (new Date(trip.endDate).getTime() -
-                        new Date(trip.startDate).getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    ) + 1}
-                    日間
+                    {tripDuration > 0 ? `${tripDuration}日間` : "未定"}
                   </p>
                 </div>
               </div>
@@ -318,20 +348,24 @@ export default async function TripOverview({
             <div className="pt-4 border-t">
               <h3 className="font-medium mb-3">参加メンバー</h3>
               <div className="flex flex-wrap gap-2">
-                {trip.members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-1"
-                  >
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={member.avatar} alt={member.name} />
-                      <AvatarFallback>
-                        {member.name.substring(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{member.name}</span>
-                  </div>
-                ))}
+                {trip.members && trip.members.length > 0 ? (
+                  trip.members.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-1"
+                    >
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={member.avatar} alt={member.name} />
+                        <AvatarFallback>
+                          {member.name?.substring(0, 2) || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{member.name}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-sm">メンバーが登録されていません</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -359,7 +393,7 @@ export default async function TripOverview({
             </div>
           </CardHeader>
           <CardContent>
-            {scheduleEvents.length > 0 ? (
+            {scheduleEvents && scheduleEvents.length > 0 ? (
               <ScheduleTimeline scheduleEvents={scheduleEvents} />
             ) : (
               <div className="text-center py-8">
@@ -367,9 +401,11 @@ export default async function TripOverview({
                 <p className="text-muted-foreground">
                   スケジュールが設定されていません
                 </p>
-                <Button variant="outline" className="mt-4">
-                  スケジュールを作成
-                </Button>
+                <Link href={`/trip/${tripId}/schedule`}>
+                  <Button variant="outline" className="mt-4">
+                    スケジュールを作成
+                  </Button>
+                </Link>
               </div>
             )}
           </CardContent>
@@ -383,7 +419,7 @@ export default async function TripOverview({
           <CardDescription>旅行の最新情報</CardDescription>
         </CardHeader>
         <CardContent>
-          {trip.recentUpdates.length > 0 ? (
+          {trip.recentUpdates && trip.recentUpdates.length > 0 ? (
             <div className="space-y-4">
               {trip.recentUpdates.map((update) => (
                 <div
@@ -392,7 +428,7 @@ export default async function TripOverview({
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>
-                      {update.user.substring(0, 2)}
+                      {update.user?.substring(0, 2) || "?"}
                     </AvatarFallback>
                   </Avatar>
                   <div>
