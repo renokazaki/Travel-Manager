@@ -16,77 +16,18 @@ import {
   CreditCard,
   Clock,
 } from "lucide-react";
-import { Trip, tripData } from "@/lib/mockdeta";
+import { PaymentData, Trip, tripData } from "@/lib/mockdeta";
 import { SettlementActions } from "@/components/settlement/settlementActions";
 import { AddExpenseModal } from "@/components/settlement/addExpenseModal";
+import { PaymentRecordType } from "@/types/types";
 
-// データ型定義
-interface PaymentRecord {
-  id: string;
-  title: string;
-  amount: number;
-  paidBy: string;
-  paidFor: string[]; // 誰の分を支払ったか
-  category: string;
-  date: string;
-  description?: string;
-  isSettled: boolean;
-}
 
 // データ取得関数
 async function getTripData(tripId: string): Promise<Trip | null> {
   return tripData[tripId] || null;
 }
 
-// モックデータ
-const mockPaymentData = {
-  payments: [
-    {
-      id: "pay-1",
-      title: "ホテル宿泊費（全員分）",
-      amount: 24000,
-      paidBy: "田中太郎",
-      paidFor: ["田中太郎", "佐藤花子", "鈴木一郎", "高橋和子"],
-      category: "宿泊",
-      date: "2025-07-15",
-      description: "グランドホテル 2泊分",
-      isSettled: false,
-    },
-    {
-      id: "pay-2",
-      title: "レンタカー代（全員分）",
-      amount: 8000,
-      paidBy: "佐藤花子",
-      paidFor: ["田中太郎", "佐藤花子", "鈴木一郎", "高橋和子"],
-      category: "交通",
-      date: "2025-07-15",
-      description: "3日間レンタル",
-      isSettled: false,
-    },
-    {
-      id: "pay-3",
-      title: "ディナー代（3人分）",
-      amount: 12000,
-      paidBy: "鈴木一郎",
-      paidFor: ["田中太郎", "佐藤花子", "鈴木一郎"],
-      category: "食事",
-      date: "2025-07-15",
-      description: "イタリアンレストラン",
-      isSettled: false,
-    },
-    {
-      id: "pay-4",
-      title: "観光地入場料（全員分）",
-      amount: 4000,
-      paidBy: "高橋和子",
-      paidFor: ["田中太郎", "佐藤花子", "鈴木一郎", "高橋和子"],
-      category: "観光",
-      date: "2025-07-16",
-      description: "美術館入場料",
-      isSettled: false,
-    },
-  ] as PaymentRecord[],
-};
+
 
 // ユーティリティ関数
 function getCategoryColor(category: string) {
@@ -101,7 +42,7 @@ function getCategoryColor(category: string) {
 }
 
 // 支払い記録コンポーネント
-function PaymentRecord({ payment }: { payment: PaymentRecord }) {
+function PaymentRecord({ payment }: { payment: PaymentRecordType }) {
   const perPersonAmount = payment.amount / payment.paidFor.length;
 
   return (
@@ -238,7 +179,7 @@ export default async function TripSettlement({
     notFound();
   }
 
-  const payments = mockPaymentData.payments;
+  const payments = PaymentData;
   const memberNames = trip.members.map((m) => m.name);
 
   return (

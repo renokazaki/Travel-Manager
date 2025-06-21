@@ -13,72 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CalendarDays, Users, Plus, MapPin, Plane, Settings, Bell, Search, Calendar, UserPlus } from "lucide-react";
+import {FriendsData,travelGroups,recentActivities} from "@/lib/mockdeta";
 
-// 友達データ
-const friends = [
-  { id: "1", name: "田中太郎", avatar: "/avatars/tanaka.jpg", status: "オンライン" },
-  { id: "2", name: "佐藤花子", avatar: "/avatars/sato.jpg", status: "オフライン" },
-  { id: "3", name: "鈴木一郎", avatar: "/avatars/suzuki.jpg", status: "オンライン" },
-  { id: "4", name: "高橋和子", avatar: "/avatars/takahashi.jpg", status: "オフライン" },
-  { id: "5", name: "伊藤誠", avatar: "/avatars/ito.jpg", status: "オンライン" },
-  { id: "6", name: "山田美咲", avatar: "/avatars/yamada.jpg", status: "オンライン" },
-  { id: "7", name: "中村健太", avatar: "/avatars/nakamura.jpg", status: "オフライン" },
-  { id: "8", name: "小林愛", avatar: "/avatars/kobayashi.jpg", status: "オンライン" }
-];
-
-// 旅行グループデータ（実際のメンバー情報付き）
-const travelGroups = [
-  {
-    id: "1",
-    name: "沖縄旅行",
-    date: "2025年7月15日 - 7月18日",
-    members: [
-      { id: "1", name: "田中太郎", avatar: "/avatars/tanaka.jpg" },
-      { id: "2", name: "佐藤花子", avatar: "/avatars/sato.jpg" },
-      { id: "3", name: "鈴木一郎", avatar: "/avatars/suzuki.jpg" },
-      { id: "4", name: "高橋和子", avatar: "/avatars/takahashi.jpg" },
-      { id: "5", name: "伊藤誠", avatar: "/avatars/ito.jpg" }
-    ],
-    image: "/images/okinawa.jpg",
-    status: "計画中"
-  },
-  {
-    id: "2",
-    name: "京都観光",
-    date: "2025年8月10日 - 8月12日",
-    members: [
-      { id: "1", name: "田中太郎", avatar: "/avatars/tanaka.jpg" },
-      { id: "2", name: "佐藤花子", avatar: "/avatars/sato.jpg" },
-      { id: "3", name: "鈴木一郎", avatar: "/avatars/suzuki.jpg" }
-    ],
-    image: "/images/kyoto.jpg",
-    status: "確定"
-  },
-  {
-    id: "3",
-    name: "北海道スキー",
-    date: "2025年12月24日 - 12月27日",
-    members: [
-      { id: "1", name: "田中太郎", avatar: "/avatars/tanaka.jpg" },
-      { id: "2", name: "佐藤花子", avatar: "/avatars/sato.jpg" },
-      { id: "3", name: "鈴木一郎", avatar: "/avatars/suzuki.jpg" },
-      { id: "4", name: "高橋和子", avatar: "/avatars/takahashi.jpg" },
-      { id: "5", name: "伊藤誠", avatar: "/avatars/ito.jpg" },
-      { id: "6", name: "山田美咲", avatar: "/avatars/yamada.jpg" },
-      { id: "7", name: "中村健太", avatar: "/avatars/nakamura.jpg" },
-      { id: "8", name: "小林愛", avatar: "/avatars/kobayashi.jpg" }
-    ],
-    image: "/images/hokkaido.jpg",
-    status: "計画中"
-  }
-];
-
-const recentActivities = [
-  { id: "1", user: "田中太郎", action: "「沖縄旅行」に新しい予定を追加しました", time: "1時間前" },
-  { id: "2", user: "佐藤花子", action: "「京都観光」の宿泊先を更新しました", time: "3時間前" },
-  { id: "3", user: "鈴木一郎", action: "「北海道スキー」に参加しました", time: "1日前" },
-  { id: "4", user: "高橋和子", action: "新しい支出「居酒屋 5,000円」を追加しました", time: "2日前" }
-];
 
 // メンバー表示コンポーネント
 function MemberAvatars({ members, maxDisplay = 4 }: { members: any[], maxDisplay?: number }) {
@@ -126,7 +62,7 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   };
 
   const handleSelectAll = () => {
-    setSelectedFriends(friends.map(f => f.id));
+    setSelectedFriends(FriendsData.map(f => f.id));
   };
 
   const handleDeselectAll = () => {
@@ -150,7 +86,7 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     onOpenChange(false);
   };
 
-  const selectedFriendsList = friends.filter(f => selectedFriends.includes(f.id));
+  const selectedFriendsList = FriendsData.filter(f => selectedFriends.includes(f.id));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -216,7 +152,7 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                   variant="outline" 
                   size="sm"
                   onClick={handleSelectAll}
-                  disabled={selectedFriends.length === friends.length}
+                  disabled={selectedFriends.length === FriendsData.length}
                 >
                   全選択
                 </Button>
@@ -258,7 +194,7 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
             {/* 友達リスト */}
             <ScrollArea className="h-48 border rounded-md p-4">
               <div className="space-y-3">
-                {friends.map((friend) => (
+                {FriendsData.map((friend) => (
                   <div key={friend.id} className="flex items-center space-x-3">
                     <Checkbox
                       id={`friend-${friend.id}`}
@@ -406,7 +342,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {friends.map((friend) => (
+            {FriendsData.map((friend) => (
               <Card key={friend.id} className="flex items-center p-4 hover:shadow-md transition-all duration-300">
                 <Avatar className="h-12 w-12 mr-4">
                   <AvatarImage src={friend.avatar} alt={friend.name} />
@@ -414,10 +350,6 @@ export default function Home() {
                 </Avatar>
                 <div className="flex-1">
                   <h3 className="font-medium">{friend.name}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${friend.status === "オンライン" ? "bg-green-500" : "bg-gray-300"}`} />
-                    <span className="text-sm text-muted-foreground">{friend.status}</span>
-                  </div>
                 </div>
                 <Button variant="ghost" size="icon">
                   <Settings className="h-4 w-4" />

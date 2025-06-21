@@ -22,8 +22,10 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { Trip, tripData, ScheduleEvent } from "@/lib/mockdeta";
+import {  tripData, TripScheduleData } from "@/lib/mockdeta";
 import Link from "next/link";
+import { TripScheduleDataType } from "@/types/types";
+import { Trip } from "@/types/types";
 
 // データ取得関数（サーバーサイド）
 async function getTripData(tripId: string): Promise<Trip | null> {
@@ -31,77 +33,13 @@ async function getTripData(tripId: string): Promise<Trip | null> {
 }
 
 // スケジュールデータ取得関数（実際の実装では別のAPIから取得）
-async function getTripSchedule(tripId: string): Promise<ScheduleEvent[]> {
+async function getTripSchedule(tripId: string): Promise<TripScheduleDataType[]> {
   // 実際の実装では、スケジュールAPIから取得
   // const schedule = await fetch(`/api/trips/${tripId}/schedule`);
   // return schedule.json();
 
   // モックデータ
-  return [
-    {
-      id: "1",
-      time: "10:00",
-      title: "羽田空港出発",
-      location: "羽田空港",
-      type: "travel",
-      notes: "搭乗2時間前にチェックイン",
-      duration: 180,
-      order: 0,
-      date: "2025-07-15",
-    },
-    {
-      id: "2",
-      time: "13:00",
-      title: "那覇空港到着",
-      location: "那覇空港",
-      type: "travel",
-      duration: 60,
-      order: 1,
-      date: "2025-07-15",
-    },
-    {
-      id: "3",
-      time: "15:00",
-      title: "ホテルチェックイン",
-      location: "リゾートホテル沖縄",
-      type: "accommodation",
-      duration: 30,
-      order: 2,
-      date: "2025-07-15",
-    },
-    {
-      id: "4",
-      time: "18:00",
-      title: "沖縄料理ディナー",
-      location: "国際通り",
-      type: "food",
-      notes: "ゴーヤチャンプルーとソーキそばを食べる",
-      duration: 120,
-      order: 3,
-      date: "2025-07-15",
-    },
-    {
-      id: "5",
-      time: "09:00",
-      title: "美ら海水族館",
-      location: "沖縄県国頭郡",
-      type: "activity",
-      notes: "ジンベエザメを見る",
-      duration: 180,
-      order: 0,
-      date: "2025-07-16",
-    },
-    {
-      id: "6",
-      time: "12:00",
-      title: "ランチ",
-      location: "美ら海水族館レストラン",
-      type: "food",
-      duration: 60,
-      order: 1,
-      date: "2025-07-16",
-    },
-  ];
+  return TripScheduleData as TripScheduleDataType[];
 }
 
 
@@ -193,7 +131,7 @@ function calculateCountdown(startDate: string, endDate: string) {
 function ScheduleTimeline({
   scheduleEvents,
 }: {
-  scheduleEvents: ScheduleEvent[];
+  scheduleEvents: TripScheduleDataType[];
 }) {
   // 日付でグループ化
   const groupedEvents = scheduleEvents.reduce((groups, event) => {
@@ -203,7 +141,7 @@ function ScheduleTimeline({
     }
     groups[date].push(event);
     return groups;
-  }, {} as Record<string, ScheduleEvent[]>);
+  }, {} as Record<string, TripScheduleDataType[]>);
 
   // 日付順にソート
   const sortedDates = Object.keys(groupedEvents).sort();
