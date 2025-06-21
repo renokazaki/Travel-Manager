@@ -10,11 +10,6 @@ import { ScheduleDataType } from "@/types/types";
 
 
 
-// 静的生成用のパラメータを生成
-export async function generateStaticParams() {
-  const tripIds = Object.keys(tripData);
-  return tripIds.map((id) => ({ id }));
-}
 
 // データ取得関数
 async function getScheduleData(tripId: string): Promise<ScheduleDataType | null> {
@@ -34,17 +29,7 @@ async function getScheduleData(tripId: string): Promise<ScheduleDataType | null>
   return tripScheduleData.find((data) => data.tripId === tripId) || null;
 }
 
-// 日付をフォーマットする関数
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const options: Intl.DateTimeFormatOptions = { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric', 
-    weekday: 'long' 
-  };
-  return date.toLocaleDateString('ja-JP', options);
-}
+
 
 // 空のスケジュール表示コンポーネント
 function EmptySchedule() {
