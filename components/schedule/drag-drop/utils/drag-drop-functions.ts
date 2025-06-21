@@ -1,5 +1,5 @@
-import { ScheduleDay } from "@/lib/mockdeta";
 import { CalendarDays, MapPin, Utensils, Clock } from "lucide-react";
+import { ScheduleDay } from "@/types/types";
 
 // ユーティリティ関数
 export const utils = {

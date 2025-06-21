@@ -15,15 +15,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, GripVertical, Calendar } from "lucide-react";
-import {
-  ScheduleEvent,
-  PendingEvent,
-  mockScheduleData,
-  Props,
-} from "@/lib/mockdeta";
+
 import { utils } from "./drag-drop/utils/drag-drop-functions";
 import { DayCard, PendingEventsPanel } from "./drag-drop/pending-event";
 import { useDragAndDropLogic } from "./drag-drop/utils/drag-drop-logic";
+import { ScheduleEvent, PendingEvent, ScheduleDataType, ScheduleDay } from "@/types/types";
 
 // 新しい日付追加ボタン
 const AddNewDayCard = ({ onAddDay }: { onAddDay: () => void }) => {
@@ -102,9 +98,8 @@ const DragOverlay_Item = ({ item }: { item: ScheduleEvent | PendingEvent }) => {
 
 // メインコンポーネント
 export default function CleanScheduleManager({
-  scheduleData = mockScheduleData,
-  onDataChange,
-}: Props) {
+  scheduleData,
+}: { scheduleData: ScheduleDataType }) {
   const [isMounted, setIsMounted] = useState(false);
 
   const {
@@ -116,7 +111,7 @@ export default function CleanScheduleManager({
     handleDragEnd,
     addNewDay,
     removeDay,
-  } = useDragAndDropLogic(scheduleData, onDataChange);
+  } = useDragAndDropLogic(scheduleData);
 
   // センサーの最適化：応答性を高めるために設定を調整
   const sensors = useSensors(
@@ -186,7 +181,7 @@ export default function CleanScheduleManager({
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* スケジュール表示エリア */}
           <div className="lg:col-span-3 space-y-6">
-            {data.scheduledDays.map((day) => (
+            {data.scheduledDays.map((day: ScheduleDay) => (
               <DayCard
                 key={day.id}
                 day={day}

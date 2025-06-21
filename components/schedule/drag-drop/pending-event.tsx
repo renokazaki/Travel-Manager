@@ -1,4 +1,3 @@
-import { PendingEvent, ScheduleDay, ScheduleEvent } from "@/lib/mockdeta";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { utils } from "./utils/drag-drop-functions";
@@ -9,7 +8,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useMemo } from "react";
 import ScheduledEventCard from "./schedule-event-card";
 import { Button } from "@/components/ui/button";
-
+import { PendingEvent, ScheduleDay, ScheduleEvent } from "@/types/types";
 // 候補イベントカード（レスポンシブ対応）
 export default function PendingEventCard({ event }: { event: PendingEvent }) {
   const {

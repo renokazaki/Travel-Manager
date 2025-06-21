@@ -5,153 +5,12 @@ import {
 } from "@/components/ui/card";
 import CalendarClient from "@/components/coordination/calender-client";
 import CoordinationHeader from "@/components/coordination/coordination-header";
+import { CoordinationData } from "@/lib/mockdeta";
+import { CoordinationDataType } from "@/types/types";
 
-// 型定義
-interface Member {
-  id: string;
-  name: string;
-  avatar: string;
-}
 
-interface MemberAvailability {
-  [date: string]: "available" | "unavailable" | "maybe";
-}
 
-interface ScheduleData {
-  tripId: string;
-  tripName: string;
-  members: Member[];
-  availabilities: {
-    [memberId: string]: MemberAvailability;
-  };
-}
 
-// モックデータベース
-const mockScheduleDatabase: Record<string, ScheduleData> = {
-  "1": {
-    tripId: "1",
-    tripName: "沖縄旅行",
-    members: [
-      { id: "1", name: "田中太郎", avatar: "田" },
-      { id: "2", name: "佐藤花子", avatar: "佐" },
-      { id: "3", name: "鈴木一郎", avatar: "鈴" },
-      { id: "4", name: "高橋和子", avatar: "高" },
-      { id: "5", name: "伊藤誠", avatar: "伊" },
-    ],
-    availabilities: {
-      "1": {
-        "2025-07-15": "available",
-        "2025-07-16": "available",
-        "2025-07-17": "available",
-        "2025-07-18": "unavailable",
-        "2025-07-19": "available",
-        "2025-07-20": "maybe",
-        "2025-07-21": "unavailable",
-        "2025-07-22": "available",
-      },
-      "2": {
-        "2025-07-15": "available",
-        "2025-07-16": "available",
-        "2025-07-17": "available",
-        "2025-07-18": "available",
-        "2025-07-19": "unavailable",
-        "2025-07-20": "unavailable",
-        "2025-07-21": "unavailable",
-        "2025-07-22": "unavailable",
-      },
-      "3": {
-        "2025-07-15": "unavailable",
-        "2025-07-16": "unavailable",
-        "2025-07-17": "available",
-        "2025-07-18": "available",
-        "2025-07-19": "available",
-        "2025-07-20": "available",
-        "2025-07-21": "available",
-        "2025-07-22": "unavailable",
-      },
-      "4": {
-        "2025-07-15": "available",
-        "2025-07-16": "available",
-        "2025-07-17": "available",
-        "2025-07-18": "available",
-        "2025-07-19": "unavailable",
-        "2025-07-20": "unavailable",
-        "2025-07-21": "available",
-        "2025-07-22": "available",
-      },
-      "5": {
-        "2025-07-15": "unavailable",
-        "2025-07-16": "available",
-        "2025-07-17": "available",
-        "2025-07-18": "available",
-        "2025-07-19": "available",
-        "2025-07-20": "available",
-        "2025-07-21": "unavailable",
-        "2025-07-22": "unavailable",
-      },
-    },
-  },
-  "2": {
-    tripId: "2",
-    tripName: "京都観光",
-    members: [
-      { id: "1", name: "田中太郎", avatar: "田" },
-      { id: "2", name: "佐藤花子", avatar: "佐" },
-      { id: "3", name: "鈴木一郎", avatar: "鈴" },
-    ],
-    availabilities: {
-      "1": {
-        "2025-08-10": "available",
-        "2025-08-11": "available",
-        "2025-08-12": "available",
-      },
-      "2": {
-        "2025-08-10": "available",
-        "2025-08-11": "available",
-        "2025-08-12": "unavailable",
-      },
-      "3": {
-        "2025-08-10": "maybe",
-        "2025-08-11": "available",
-        "2025-08-12": "available",
-      },
-    },
-  },
-  "3": {
-    tripId: "3",
-    tripName: "北海道スキー",
-    members: [
-      { id: "1", name: "田中太郎", avatar: "田" },
-      { id: "2", name: "佐藤花子", avatar: "佐" },
-      { id: "3", name: "鈴木一郎", avatar: "鈴" },
-      { id: "4", name: "高橋和子", avatar: "高" },
-      { id: "5", name: "伊藤誠", avatar: "伊" },
-      { id: "6", name: "山本隆", avatar: "山" },
-      { id: "7", name: "中村愛", avatar: "中" },
-      { id: "8", name: "小林健", avatar: "小" },
-    ],
-    availabilities: {
-      "1": {
-        "2025-12-24": "available",
-        "2025-12-25": "available",
-        "2025-12-26": "available",
-        "2025-12-27": "available",
-      },
-      "2": {
-        "2025-12-24": "unavailable",
-        "2025-12-25": "available",
-        "2025-12-26": "available",
-        "2025-12-27": "available",
-      },
-      "3": {
-        "2025-12-24": "available",
-        "2025-12-25": "available",
-        "2025-12-26": "unavailable",
-        "2025-12-27": "unavailable",
-      },
-    },
-  },
-};
 
 // 静的生成用のパラメータを生成
 export async function generateStaticParams() {
@@ -159,12 +18,12 @@ export async function generateStaticParams() {
   // const trips = await prisma.trip.findMany({ select: { id: true } });
   // return trips.map((trip) => ({ id: trip.id }));
 
-  const tripIds = Object.keys(mockScheduleDatabase);
+  const tripIds = Object.keys(CoordinationData);
   return tripIds.map((id) => ({ id }));
 }
 
 // データ取得関数（サーバーサイド）
-async function getScheduleData(tripId: string): Promise<ScheduleData | null> {
+async function getScheduleData(tripId: string): Promise<CoordinationDataType | null> {
   // 実際の実装では、データベースから日程調整データを取得
   // const scheduleData = await prisma.scheduleCoordination.findUnique({
   //   where: { tripId },
@@ -175,7 +34,7 @@ async function getScheduleData(tripId: string): Promise<ScheduleData | null> {
   // });
   // return scheduleData;
 
-  return mockScheduleDatabase[tripId] || null;
+  return CoordinationData.find((data) => data.tripId === tripId) || null;
 }
 
 // 参加状況のアイコンとスタイル（サーバーサイドで定義）

@@ -3,250 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Plus } from "lucide-react";
 import AddEventDialog from "@/components/schedule/dialog/add-event-dialog";
-import { tripData } from "@/lib/mockdeta";
+import { tripData, tripScheduleData } from "@/lib/mockdeta";
 import ScheduleDragDropClient from "@/components/schedule/schedule-drag-drop-client";
+import { ScheduleDataType } from "@/types/types";
 
-// 型定義
-export interface ScheduleEvent {
-  id: string;
-  time: string;
-  title: string;
-  location: string;
-  type: "travel" | "accommodation" | "food" | "activity";
-  notes?: string;
-  duration?: number; // 所要時間（分）
-  order: number; // 表示順序
-}
 
-export interface ScheduleDay {
-  id: string;
-  date: string;
-  events: ScheduleEvent[];
-}
 
-export interface PendingEvent {
-  id: string;
-  title: string;
-  location: string;
-  type: "travel" | "accommodation" | "food" | "activity";
-  notes?: string;
-  estimatedDuration?: number;
-  priority: "high" | "medium" | "low";
-  suggestedBy: string;
-}
-
-export interface ScheduleData {
-  tripId: string;
-  tripName: string;
-  scheduledDays: ScheduleDay[];
-  pendingEvents: PendingEvent[];
-}
-
-// モックデータ
-const tripScheduleData: Record<string, ScheduleData> = {
-  "1": {
-    tripId: "1",
-    tripName: "沖縄旅行",
-    scheduledDays: [
-      {
-        id: "day1",
-        date: "2025-07-15",
-        events: [
-          {
-            id: "1",
-            time: "10:00",
-            title: "羽田空港出発",
-            location: "羽田空港",
-            type: "travel",
-            notes: "搭乗2時間前にチェックイン",
-            duration: 180,
-            order: 0
-          },
-          {
-            id: "2",
-            time: "13:00",
-            title: "那覇空港到着",
-            location: "那覇空港",
-            type: "travel",
-            duration: 60,
-            order: 1
-          },
-          {
-            id: "3",
-            time: "15:00",
-            title: "ホテルチェックイン",
-            location: "リゾートホテル沖縄",
-            type: "accommodation",
-            duration: 30,
-            order: 2
-          },
-          {
-            id: "4",
-            time: "18:00",
-            title: "沖縄料理ディナー",
-            location: "国際通り",
-            type: "food",
-            notes: "ゴーヤチャンプルーとソーキそばを食べる",
-            duration: 120,
-            order: 3
-          }
-        ]
-      },
-      {
-        id: "day2",
-        date: "2025-07-16",
-        events: [
-          {
-            id: "5",
-            time: "09:00",
-            title: "美ら海水族館",
-            location: "沖縄県国頭郡",
-            type: "activity",
-            notes: "ジンベエザメを見る",
-            duration: 180,
-            order: 0
-          },
-          {
-            id: "6",
-            time: "12:00",
-            title: "ランチ",
-            location: "美ら海水族館レストラン",
-            type: "food",
-            duration: 60,
-            order: 1
-          },
-          {
-            id: "7",
-            time: "14:00",
-            title: "古宇利島観光",
-            location: "古宇利島",
-            type: "activity",
-            duration: 120,
-            order: 2
-          }
-        ]
-      }
-    ],
-    pendingEvents: [
-      {
-        id: "pending1",
-        title: "首里城見学",
-        location: "首里城公園",
-        type: "activity",
-        notes: "琉球王国の歴史を学ぶ",
-        estimatedDuration: 90,
-        priority: "high",
-        suggestedBy: "田中太郎"
-      },
-      {
-        id: "pending2",
-        title: "国際通りショッピング",
-        location: "国際通り",
-        type: "activity",
-        estimatedDuration: 120,
-        priority: "medium",
-        suggestedBy: "佐藤花子"
-      },
-      {
-        id: "pending3",
-        title: "ステーキディナー",
-        location: "やっぱりステーキ",
-        type: "food",
-        notes: "沖縄の有名ステーキ店",
-        estimatedDuration: 90,
-        priority: "low",
-        suggestedBy: "鈴木一郎"
-      },
-      {
-        id: "pending4",
-        title: "ビーチリゾート",
-        location: "万座ビーチ",
-        type: "activity",
-        notes: "マリンスポーツを楽しむ",
-        estimatedDuration: 240,
-        priority: "high",
-        suggestedBy: "高橋和子"
-      },
-      {
-        id: "pending5",
-        title: "沖縄そば朝食",
-        location: "地元そば屋",
-        type: "food",
-        estimatedDuration: 45,
-        priority: "medium",
-        suggestedBy: "伊藤誠"
-      }
-    ]
-  },
-  "2": {
-    tripId: "2",
-    tripName: "京都観光",
-    scheduledDays: [
-      {
-        id: "day1",
-        date: "2025-08-10",
-        events: [
-          {
-            id: "1",
-            time: "08:30",
-            title: "東京駅出発",
-            location: "東京駅",
-            type: "travel",
-            duration: 165,
-            order: 0
-          },
-          {
-            id: "2",
-            time: "11:15",
-            title: "京都駅到着",
-            location: "京都駅",
-            type: "travel",
-            duration: 30,
-            order: 1
-          },
-          {
-            id: "3",
-            time: "15:00",
-            title: "旅館チェックイン",
-            location: "祇園旅館",
-            type: "accommodation",
-            duration: 30,
-            order: 2
-          }
-        ]
-      }
-    ],
-    pendingEvents: [
-      {
-        id: "pending1",
-        title: "金閣寺参拝",
-        location: "金閣寺",
-        type: "activity",
-        estimatedDuration: 60,
-        priority: "high",
-        suggestedBy: "田中太郎"
-      },
-      {
-        id: "pending2",
-        title: "嵐山竹林散策",
-        location: "嵐山",
-        type: "activity",
-        estimatedDuration: 90,
-        priority: "medium",
-        suggestedBy: "佐藤花子"
-      },
-      {
-        id: "pending3",
-        title: "湯豆腐ランチ",
-        location: "嵐山湯豆腐店",
-        type: "food",
-        estimatedDuration: 60,
-        priority: "medium",
-        suggestedBy: "鈴木一郎"
-      }
-    ]
-  }
-};
 
 // 静的生成用のパラメータを生成
 export async function generateStaticParams() {
@@ -255,7 +17,7 @@ export async function generateStaticParams() {
 }
 
 // データ取得関数
-async function getScheduleData(tripId: string): Promise<ScheduleData | null> {
+async function getScheduleData(tripId: string): Promise<ScheduleDataType | null> {
   // 実際の実装では以下のようになります：
   // const scheduleData = await prisma.schedule.findUnique({
   //   where: { tripId },
@@ -269,7 +31,7 @@ async function getScheduleData(tripId: string): Promise<ScheduleData | null> {
   // });
   // return scheduleData;
   
-  return tripScheduleData[tripId] || null;
+  return tripScheduleData.find((data) => data.tripId === tripId) || null;
 }
 
 // 日付をフォーマットする関数
