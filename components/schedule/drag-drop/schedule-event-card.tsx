@@ -1,13 +1,12 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { utils } from "./utils/drag-drop-functions";
-import { ScheduleEvent, PendingEvent } from "@/lib/mockdeta";
-import { GripVertical, Edit, Trash2, User } from "lucide-react";
+import { GripVertical, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
+import { ScheduleEvent } from "@/types/types";
 // スケジュール済みイベントカード（再設計版）
-export default function ScheduledEventCard({ event }: { event: ScheduleEvent }) {
+export default function ScheduledEventCard({ event }: { event:ScheduleEvent  }) {
   const {
     attributes,
     listeners,
