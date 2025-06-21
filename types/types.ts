@@ -37,20 +37,22 @@ export interface RecentActivityDataType {
   time: string;
 }
 
+export type TripStatus = "提案" | "計画中" | "確定" | "完了";
+
 export interface Trip {
   id: string;
   name: string;
   date: string;
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
   members: FriendsDataType[];
-  destination: string;
-  budget: number;
-  spentSoFar: number;
-  image: string;
-  status: "提案" | "計画中" | "確定" | "完了";
-  upcomingEvents: TripEvent[];
-  recentUpdates: RecentActivityDataType[];
+  destination?: string;
+  budget?: number;
+  spentSoFar?: number;
+  image?: string;
+  status: TripStatus;
+  upcomingEvents?: TripEvent[];
+  recentUpdates?: RecentActivityDataType[];
 }
 
 export interface TripEvent {
