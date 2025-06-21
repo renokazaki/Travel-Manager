@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, Users, Plus, MapPin, Plane, Settings, Search, Calendar } from "lucide-react";
 import { FriendsData, travelGroups, recentActivities } from "@/lib/mockdeta";
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+// import { auth } from '@clerk/nextjs/server';
+// import { redirect } from 'next/navigation';
 import { FriendsDataType, RecentActivityDataType, TravelGroupDataType } from "@/types/types";
 
 // クライアントコンポーネントのインポート
@@ -133,12 +133,12 @@ function ActivityCard({ activity }: { activity: RecentActivityDataType }) {
 
 // メインのホームページコンポーネント（サーバーコンポーネント）
 export default async function Home() {
-  // 認証チェック
-  const { userId } = await auth();
+  // // 認証チェック
+  // const { userId } = await auth();
   
-  if (!userId) {
-    redirect('/sign-in');
-  }
+  // if (!userId) {
+  //   redirect('/sign-in');
+  // }
 
   return (
     <div className="container mx-auto py-8 px-4">
