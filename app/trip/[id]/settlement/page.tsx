@@ -16,10 +16,11 @@ import {
   CreditCard,
   Clock,
 } from "lucide-react";
-import { PaymentData, Trip, tripData } from "@/lib/mockdeta";
+import { PaymentData, tripData } from "@/lib/mockdeta";
 import { SettlementActions } from "@/components/settlement/settlementActions";
 import { AddExpenseModal } from "@/components/settlement/addExpenseModal";
 import { PaymentRecordType } from "@/types/types";
+import { Trip } from "@/types/types";
 
 
 // データ取得関数
