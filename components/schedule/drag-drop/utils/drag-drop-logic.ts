@@ -1,12 +1,12 @@
-import { PendingEvent, ScheduleData, ScheduleDay, ScheduleEvent } from "@/types/types";
+import { PendingEvent, ScheduleDataType, ScheduleEvent,ScheduleDay } from "@/types/types";
 import { DragStartEvent, DragOverEvent, DragEndEvent, UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { useMemo, useState } from "react";
 import { utils } from "./drag-drop-functions";
 
 // ドラッグ&ドロップロジック
-export const useDragAndDropLogic = (initialData: ScheduleData, onDataChange?: (data: ScheduleData) => void) => {
-    const [data, setData] = useState<ScheduleData>(initialData);
+export const useDragAndDropLogic = (initialData: ScheduleDataType, onDataChange?: (data: ScheduleDataType) => void) => {
+    const [data, setData] = useState<ScheduleDataType>(initialData);
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
     const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   
@@ -178,7 +178,7 @@ export const useDragAndDropLogic = (initialData: ScheduleData, onDataChange?: (d
       const newDayId = utils.generateNewDayId(data.scheduledDays);
       const newDate = utils.generateNewDate(data.scheduledDays);
       
-      const newDay: ScheduleDay = {
+      const newDay:ScheduleDay  = {
         id: newDayId,
         date: newDate,
         events: []
