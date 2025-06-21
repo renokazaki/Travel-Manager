@@ -1,4 +1,4 @@
-import { PendingEvent, ScheduleData, ScheduleDay, ScheduleEvent } from "@/lib/mockdeta";
+import { PendingEvent, ScheduleData, ScheduleDay, ScheduleEvent } from "@/types/types";
 import { DragStartEvent, DragOverEvent, DragEndEvent, UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { useMemo, useState } from "react";
