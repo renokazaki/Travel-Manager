@@ -99,8 +99,7 @@ const DragOverlay_Item = ({ item }: { item: ScheduleEvent | PendingEvent }) => {
 // メインコンポーネント
 export default function CleanScheduleManager({
   scheduleData,
-  onDataChange,
-}: { scheduleData: ScheduleDataType; onDataChange: (data: ScheduleDataType) => void }) {
+}: { scheduleData: ScheduleDataType }) {
   const [isMounted, setIsMounted] = useState(false);
 
   const {
@@ -112,7 +111,7 @@ export default function CleanScheduleManager({
     handleDragEnd,
     addNewDay,
     removeDay,
-  } = useDragAndDropLogic(scheduleData, onDataChange);
+  } = useDragAndDropLogic(scheduleData);
 
   // センサーの最適化：応答性を高めるために設定を調整
   const sensors = useSensors(
