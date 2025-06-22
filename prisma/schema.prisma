@@ -20,7 +20,7 @@ model User {
   id           String   @id @default(cuid())
   clerkId      String   @unique @map("clerk_id")
   displayName  String   @map("display_name")
-  profileImage String   @map("profile_image")
+  profileImage String?  @map("profile_image")
   lineId       String?  @map("line_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
