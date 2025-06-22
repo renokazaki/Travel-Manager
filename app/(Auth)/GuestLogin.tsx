@@ -18,7 +18,7 @@ export default function GuestLogin() {
 
     if (result.status === 'complete') {
       await setActive({ session: result.createdSessionId });
-      router.push('/');
+      router.push('/home');
     }
   };
 
