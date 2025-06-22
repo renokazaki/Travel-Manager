@@ -125,16 +125,6 @@ export default function Navigation() {
     return (
       <header className="fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-md border-b border-border z-50 px-4">
         <div className="flex items-center justify-between h-full">
-          <div className="flex items-center gap-3">
-            {tripId && (
-              <Link href="/home">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-          </div>
-
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="h-8 w-8">
@@ -142,7 +132,7 @@ export default function Navigation() {
               </Button>
             </SheetTrigger>
             <SheetContent
-              side="right"
+              side="left"
               className="w-72 backdrop-blur-lg bg-white/95 dark:bg-gray-900/95 flex flex-col"
             >
               <SheetTitle>Navigation</SheetTitle>
