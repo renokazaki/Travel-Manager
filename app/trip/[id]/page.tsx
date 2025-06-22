@@ -248,7 +248,11 @@ function ScheduleTimeline({
   );
 }
 
-
+// 静的生成用のパラメータを生成
+export async function generateStaticParams() {
+  const tripIds = Object.keys(tripData);
+  return tripIds.map((id) => ({ id }));
+}
 
 // メインコンポーネント（サーバーコンポーネント）
 export default async function TripOverview({

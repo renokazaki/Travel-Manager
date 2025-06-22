@@ -10,6 +10,18 @@ import { CoordinationDataType } from "@/types/types";
 
 
 
+
+
+// 静的生成用のパラメータを生成
+export async function generateStaticParams() {
+  // 実際の実装では、データベースから全ての旅行IDを取得
+  // const trips = await prisma.trip.findMany({ select: { id: true } });
+  // return trips.map((trip) => ({ id: trip.id }));
+
+  const tripIds = Object.keys(CoordinationData);
+  return tripIds.map((id) => ({ id }));
+}
+
 // データ取得関数（サーバーサイド）
 async function getScheduleData(tripId: string): Promise<CoordinationDataType | null> {
   // 実際の実装では、データベースから日程調整データを取得
