@@ -14,51 +14,44 @@ import {
   MapPin,
   Users,
   Clock,
-  Plane,
   Plus,
   Utensils,
   Bed,
   Camera,
   Edit,
-  Trash2,
   Car,
   Activity,
+  UserPlus,
 } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/prisma/prisma";
-import { Trip, User, Event, ActivityLog, EventType, TripStatus, EventStatus } from "@prisma/client";
 import { auth } from '@clerk/nextjs/server';
+import { Trip, User, Event, EventType, TripStatus } from "@prisma/client";
+import AddMemberModal from "@/components/trip/add-member-modal";
 
 // 型定義
 type TripWithDetails = Trip & {
   users: User[];
   events: Event[];
-  activityLogs: (ActivityLog & {
-    user: User | null;
-  })[];
-  _count?: {
+  _count: {
     events: number;
     users: number;
   };
 };
 
-type EventWithDetails = Event & {
-  suggestedBy?: User;
-};
 
-
-//TODO  条件の省略
+//TODO ユーザーの条件を追加する
 // データ取得関数
 async function getTripData(tripId: string, userId: string): Promise<TripWithDetails | null> {
   const trip = await prisma.trip.findFirst({
-    // where: {
-    //   id: tripId,
-    //   users: {
-    //     some: {
-    //       clerkId: userId,
-    //     },
-    //   },
-    // },
+    where: {
+      id: tripId,
+      // users: {
+      //   some: {
+      //     clerkId: userId,
+      //   },
+      // },
+    },
     include: {
       users: true,
       events: {
@@ -70,15 +63,6 @@ async function getTripData(tripId: string, userId: string): Promise<TripWithDeta
           { order: 'asc' },
         ],
       },
-      activityLogs: {
-        include: {
-          Trip: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 10,
-      },
       _count: {
         select: {
           events: true,
@@ -88,30 +72,69 @@ async function getTripData(tripId: string, userId: string): Promise<TripWithDeta
     },
   });
 
-  if (!trip) return null;
+  return trip;
+}
 
-  // ActivityLogにユーザー情報を追加
-  const activityLogsWithUser = await Promise.all(
-    trip.activityLogs.map(async (log) => {
-      const user = await prisma.user.findUnique({
-        where: { clerkId: log.clerkId },
-      });
-      return { ...log, user };
-    })
-  );
+// メンバー追加のサーバーアクション
+async function addMemberToTrip(formData: FormData) {
+  'use server';
+  
+  const tripId = formData.get('tripId') as string;
+  const userID = formData.get('userID') as string;
 
-  return { ...trip, activityLogs: activityLogsWithUser };
+  try {
+    // メールアドレスでユーザーを検索（実際の実装では、ClerkのAPIやUserテーブルの別フィールドを使用）
+    const user = await prisma.user.findFirst({
+      where: {
+        clerkId: userID,
+      },
+    });
+
+    if (!user) {
+      throw new Error('ユーザーが見つかりません');
+    }
+
+    // 既に参加しているかチェック
+    const existingMember = await prisma.trip.findFirst({
+      where: {
+        id: tripId,
+        users: {
+          some: {
+            clerkId: user.clerkId,
+          },
+        },
+      },
+    });
+
+    if (existingMember) {
+      throw new Error('このユーザーは既に参加しています');
+    }
+
+    // ユーザーをトリップに追加
+    await prisma.trip.update({
+      where: { id: tripId },
+      data: {
+        users: {
+          connect: { clerkId: user.clerkId },
+        },
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : '追加に失敗しました');
+  }
 }
 
 // ステータスバッジの色を取得
 function getStatusBadge(status: TripStatus) {
   switch (status) {
     case "PLANNING":
-      return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">計画中</Badge>;
+      return <Badge variant="secondary" className="bg-blue-100 text-blue-800">計画中</Badge>;
     case "CONFIRMED":
-      return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">確定</Badge>;
+      return <Badge variant="secondary" className="bg-green-100 text-green-800">確定</Badge>;
     case "COMPLETED":
-      return <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">完了</Badge>;
+      return <Badge variant="secondary" className="bg-purple-100 text-purple-800">完了</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
@@ -153,20 +176,6 @@ function getEventColor(type: EventType | null) {
   }
 }
 
-// 優先度の色を取得
-function getPriorityColor(priority: string) {
-  switch (priority) {
-    case "HIGH":
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-    case "MEDIUM":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-    case "LOW":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-    default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
-  }
-}
-
 // カウントダウン計算
 function calculateCountdown(startDate: Date | null, endDate: Date | null) {
   if (!startDate || !endDate) {
@@ -189,45 +198,13 @@ function calculateCountdown(startDate: Date | null, endDate: Date | null) {
   }
 }
 
-// 期間計算のヘルパー関数
+// 期間計算
 function calculateTripDuration(startDate: Date | null, endDate: Date | null): number {
   if (!startDate || !endDate) return 0;
   return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 }
 
-// 日付フォーマット関数
-function formatDate(date: Date | null): string {
-  if (!date) return "未定";
-  return new Intl.DateTimeFormat('ja-JP', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  }).format(date);
-}
-
-// 時間フォーマット関数
-function formatTime(time: Date | null): string {
-  if (!time) return "";
-  return new Intl.DateTimeFormat('ja-JP', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(time);
-}
-
-// 相対時間表示
-function timeAgo(date: Date): string {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(hours / 24);
-  
-  if (days > 0) return `${days}日前`;
-  if (hours > 0) return `${hours}時間前`;
-  return "たった今";
-}
-
-// 日付でグループ化されたスケジュール表示コンポーネント
+// 日付でグループ化されたスケジュール表示
 function ScheduleTimeline({ events }: { events: Event[] }) {
   // 日付でグループ化
   const groupedEvents = events.reduce((groups, event) => {
@@ -248,10 +225,18 @@ function ScheduleTimeline({ events }: { events: Event[] }) {
         const dayEvents = groupedEvents[dateKey].sort((a, b) => (a.order || 0) - (b.order || 0));
         const date = dateKey === "未定" ? null : new Date(dateKey);
         
+        const formattedDate = date 
+          ? date.toLocaleDateString("ja-JP", {
+              month: "long",
+              day: "numeric",
+              weekday: "long",
+            })
+          : "未定";
+
         return (
           <div key={dateKey} className="space-y-3">
             <h3 className="font-semibold text-lg border-b pb-2">
-              {formatDate(date)}
+              {formattedDate}
             </h3>
             <div className="space-y-2">
               {dayEvents.map((event) => {
@@ -268,13 +253,15 @@ function ScheduleTimeline({ events }: { events: Event[] }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                        <div>
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-medium">{event.title}</p>
                             {event.startTime && (
                               <Badge variant="outline" className="text-xs">
-                                {formatTime(event.startTime)}
-                                {event.endTime && ` - ${formatTime(event.endTime)}`}
+                                {new Date(event.startTime).toLocaleTimeString('ja-JP', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
                               </Badge>
                             )}
                           </div>
@@ -291,7 +278,7 @@ function ScheduleTimeline({ events }: { events: Event[] }) {
                           )}
                         </div>
                         {event.durationMinutes && (
-                          <Badge variant="secondary" className="text-xs ml-2">
+                          <Badge variant="secondary" className="text-xs">
                             {Math.floor(event.durationMinutes / 60)}h
                             {event.durationMinutes % 60 > 0
                               ? `${event.durationMinutes % 60}m`
@@ -418,8 +405,17 @@ export default async function TripOverview({
             </div>
           </div>
 
+          {/* メンバー管理 */}
           <div className="pt-4 border-t">
-            <h3 className="font-medium mb-3">参加メンバー</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium">参加メンバー</h3>
+              <AddMemberModal tripId={tripId} addMemberToTrip={addMemberToTrip}>
+                <Button variant="outline" size="sm">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  メンバー追加
+                </Button>
+              </AddMemberModal>
+            </div>
             <div className="flex flex-wrap gap-2">
               {trip.users.map((member) => (
                 <div
@@ -479,51 +475,6 @@ export default async function TripOverview({
                   スケジュールを作成
                 </Button>
               </Link>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 最近の更新 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            最近の更新
-          </CardTitle>
-          <CardDescription>旅行の最新アクティビティ</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {trip.activityLogs.length > 0 ? (
-            <div className="space-y-4">
-              {trip.activityLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-3 pb-4 border-b last:border-0 last:pb-0"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={log.user?.profileImage || ""} />
-                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-teal-500 text-white">
-                      {log.user?.displayName?.substring(0, 2).toUpperCase() || "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-sm">
-                      <span className="font-medium">{log.user?.displayName || "不明なユーザー"}</span>さんが
-                      <span className="ml-1">{log.description}</span>
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3" />
-                      {timeAgo(log.createdAt)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">最近の更新はありません</p>
             </div>
           )}
         </CardContent>

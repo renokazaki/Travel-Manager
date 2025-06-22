@@ -63,16 +63,16 @@ export default function Navigation() {
           icon: <Home className="h-5 w-5" />,
         },
         {
-          title: "Schedule",
-          ja: "スケジュール",
-          href: `/trip/${tripId}/schedule`,
-          icon: <Calendar className="h-5 w-5" />,
-        },
-        {
           title: "Coordination",
           ja: "日程調整",
           href: `/trip/${tripId}/coordination`,
           icon: <Clock className="h-5 w-5" />,
+        },
+        {
+          title: "Schedule",
+          ja: "スケジュール",
+          href: `/trip/${tripId}/schedule`,
+          icon: <Calendar className="h-5 w-5" />,
         },
         {
           title: "Settlement",
