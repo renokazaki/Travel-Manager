@@ -1,7 +1,7 @@
 'use client';
 import { useSignIn } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/_components/shadcn_ui/button';
+import { Button } from '@/components/ui/button';
 
 export default function GuestLogin() {
   const { signIn, setActive } = useSignIn();
