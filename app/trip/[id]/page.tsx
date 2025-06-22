@@ -21,70 +21,133 @@ import {
   Camera,
   Edit,
   Trash2,
+  Car,
+  Activity,
 } from "lucide-react";
-import { tripData, TripScheduleData } from "@/lib/mockdeta";
 import Link from "next/link";
-import { TripScheduleDataType } from "@/types/types";
-import { Trip } from "@/types/types";
+import { prisma } from "@/prisma/prisma";
+import { Trip, User, Event, ActivityLog, EventType, TripStatus, EventStatus } from "@prisma/client";
+import { auth } from '@clerk/nextjs/server';
 
-// データ取得関数（サーバーサイド）
-async function getTripData(tripId: string): Promise<Trip | null> {
-  return tripData[tripId] || null;
-}
+// 型定義
+type TripWithDetails = Trip & {
+  users: User[];
+  events: Event[];
+  activityLogs: (ActivityLog & {
+    user: User | null;
+  })[];
+  _count?: {
+    events: number;
+    users: number;
+  };
+};
 
-// スケジュールデータ取得関数（実際の実装では別のAPIから取得）
-async function getTripSchedule(tripId: string): Promise<TripScheduleDataType[]> {
-  // 実際の実装では、スケジュールAPIから取得
-  // const schedule = await fetch(`/api/trips/${tripId}/schedule`);
-  // return schedule.json();
+type EventWithDetails = Event & {
+  suggestedBy?: User;
+};
 
-  // モックデータ
-  return TripScheduleData as TripScheduleDataType[];
+
+//TODO  条件の省略
+// データ取得関数
+async function getTripData(tripId: string, userId: string): Promise<TripWithDetails | null> {
+  const trip = await prisma.trip.findFirst({
+    // where: {
+    //   id: tripId,
+    //   users: {
+    //     some: {
+    //       clerkId: userId,
+    //     },
+    //   },
+    // },
+    include: {
+      users: true,
+      events: {
+        where: {
+          status: 'SCHEDULED',
+        },
+        orderBy: [
+          { date: 'asc' },
+          { order: 'asc' },
+        ],
+      },
+      activityLogs: {
+        include: {
+          Trip: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 10,
+      },
+      _count: {
+        select: {
+          events: true,
+          users: true,
+        },
+      },
+    },
+  });
+
+  if (!trip) return null;
+
+  // ActivityLogにユーザー情報を追加
+  const activityLogsWithUser = await Promise.all(
+    trip.activityLogs.map(async (log) => {
+      const user = await prisma.user.findUnique({
+        where: { clerkId: log.clerkId },
+      });
+      return { ...log, user };
+    })
+  );
+
+  return { ...trip, activityLogs: activityLogsWithUser };
 }
 
 // ステータスバッジの色を取得
-function getStatusColor(status: Trip["status"]) {
+function getStatusBadge(status: TripStatus) {
   switch (status) {
-    case "提案":
-      return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
-    case "計画中":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-    case "確定":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-    case "完了":
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+    case "PLANNING":
+      return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">計画中</Badge>;
+    case "CONFIRMED":
+      return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">確定</Badge>;
+    case "COMPLETED":
+      return <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">完了</Badge>;
     default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+      return <Badge variant="outline">{status}</Badge>;
   }
 }
 
 // イベントタイプのアイコンを取得
-function getEventIcon(type: string) {
+function getEventIcon(type: EventType | null) {
   switch (type) {
-    case "travel":
-      return Plane;
-    case "accommodation":
+    case "TRANSPORTATION":
+      return Car;
+    case "ACCOMMODATION":
       return Bed;
-    case "food":
+    case "FOOD":
       return Utensils;
-    case "activity":
+    case "ACTIVITY":
       return Camera;
+    case "OTHER":
+      return Activity;
     default:
       return Clock;
   }
 }
 
 // イベントタイプの色を取得
-function getEventColor(type: string) {
+function getEventColor(type: EventType | null) {
   switch (type) {
-    case "travel":
+    case "TRANSPORTATION":
       return "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400";
-    case "accommodation":
+    case "ACCOMMODATION":
       return "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400";
-    case "food":
+    case "FOOD":
       return "bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400";
-    case "activity":
+    case "ACTIVITY":
       return "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400";
+    case "OTHER":
+      return "bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400";
     default:
       return "bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400";
   }
@@ -93,38 +156,29 @@ function getEventColor(type: string) {
 // 優先度の色を取得
 function getPriorityColor(priority: string) {
   switch (priority) {
-    case "high":
+    case "HIGH":
       return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-    case "medium":
+    case "MEDIUM":
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-    case "low":
+    case "LOW":
       return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
     default:
       return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
   }
 }
 
-// カウントダウン計算（null safety対応）
-function calculateCountdown(startDate: string | undefined, endDate: string | undefined) {
-  // startDateまたはendDateがundefinedの場合のデフォルト値
+// カウントダウン計算
+function calculateCountdown(startDate: Date | null, endDate: Date | null) {
   if (!startDate || !endDate) {
     return { text: "未定", subText: "日程を設定してください" };
   }
 
-  const start = new Date(startDate);
-  const end = new Date(endDate);
   const today = new Date();
-
-  // 無効な日付の場合
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    return { text: "無効", subText: "日程を確認してください" };
-  }
-
   const daysUntilTrip = Math.ceil(
-    (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    (startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
   );
   const tripDuration =
-    Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   if (daysUntilTrip > 0) {
     return { text: `${daysUntilTrip}`, subText: "日後に出発" };
@@ -136,102 +190,111 @@ function calculateCountdown(startDate: string | undefined, endDate: string | und
 }
 
 // 期間計算のヘルパー関数
-function calculateTripDuration(startDate: string | undefined, endDate: string | undefined): number {
+function calculateTripDuration(startDate: Date | null, endDate: Date | null): number {
   if (!startDate || !endDate) return 0;
+  return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+// 日付フォーマット関数
+function formatDate(date: Date | null): string {
+  if (!date) return "未定";
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  }).format(date);
+}
+
+// 時間フォーマット関数
+function formatTime(time: Date | null): string {
+  if (!time) return "";
+  return new Intl.DateTimeFormat('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(time);
+}
+
+// 相対時間表示
+function timeAgo(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
   
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-  
-  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  if (days > 0) return `${days}日前`;
+  if (hours > 0) return `${hours}時間前`;
+  return "たった今";
 }
 
 // 日付でグループ化されたスケジュール表示コンポーネント
-function ScheduleTimeline({
-  scheduleEvents,
-}: {
-  scheduleEvents: TripScheduleDataType[];
-}) {
+function ScheduleTimeline({ events }: { events: Event[] }) {
   // 日付でグループ化
-  const groupedEvents = scheduleEvents.reduce((groups, event) => {
-    const date = event.date || "未定";
-    if (!groups[date]) {
-      groups[date] = [];
+  const groupedEvents = events.reduce((groups, event) => {
+    const dateKey = event.date ? event.date.toISOString().split('T')[0] : "未定";
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
     }
-    groups[date].push(event);
+    groups[dateKey].push(event);
     return groups;
-  }, {} as Record<string, TripScheduleDataType[]>);
+  }, {} as Record<string, Event[]>);
 
   // 日付順にソート
   const sortedDates = Object.keys(groupedEvents).sort();
 
   return (
     <div className="space-y-6">
-      {sortedDates.map((date) => {
-        const events = groupedEvents[date].sort((a, b) => a.order - b.order);
+      {sortedDates.map((dateKey) => {
+        const dayEvents = groupedEvents[dateKey].sort((a, b) => (a.order || 0) - (b.order || 0));
+        const date = dateKey === "未定" ? null : new Date(dateKey);
         
-        // 日付のフォーマット（無効な日付の場合の処理）
-        let formattedDate = date;
-        if (date !== "未定") {
-          try {
-            const dateObj = new Date(date);
-            if (!isNaN(dateObj.getTime())) {
-              formattedDate = dateObj.toLocaleDateString("ja-JP", {
-                month: "long",
-                day: "numeric",
-                weekday: "long",
-              });
-            }
-          } catch {
-            formattedDate = date;
-          }
-        }
-
         return (
-          <div key={date} className="space-y-3">
+          <div key={dateKey} className="space-y-3">
             <h3 className="font-semibold text-lg border-b pb-2">
-              {formattedDate}
+              {formatDate(date)}
             </h3>
             <div className="space-y-2">
-              {events.map((event) => {
+              {dayEvents.map((event) => {
                 const Icon = getEventIcon(event.type);
                 const colorClass = getEventColor(event.type);
 
                 return (
                   <div
                     key={event.id}
-                    className="flex items-start gap-3 p-3 rounded-lg border bg-card"
+                    className="flex items-start gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow"
                   >
                     <div className={`p-2 rounded-full ${colorClass}`}>
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
-                        <div>
+                        <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-medium">{event.title}</p>
-                            {event.time && (
+                            {event.startTime && (
                               <Badge variant="outline" className="text-xs">
-                                {event.time}
+                                {formatTime(event.startTime)}
+                                {event.endTime && ` - ${formatTime(event.endTime)}`}
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mb-1">
-                            <MapPin className="inline h-3 w-3 mr-1" />
-                            {event.location}
-                          </p>
+                          {event.location && (
+                            <p className="text-sm text-muted-foreground mb-1">
+                              <MapPin className="inline h-3 w-3 mr-1" />
+                              {event.location}
+                            </p>
+                          )}
                           {event.notes && (
                             <p className="text-sm text-muted-foreground italic">
                               {event.notes}
                             </p>
                           )}
                         </div>
-                        {event.duration && (
-                          <Badge variant="secondary" className="text-xs">
-                            {Math.floor(event.duration / 60)}h
-                            {event.duration % 60 > 0
-                              ? `${event.duration % 60}m`
+                        {event.durationMinutes && (
+                          <Badge variant="secondary" className="text-xs ml-2">
+                            {Math.floor(event.durationMinutes / 60)}h
+                            {event.durationMinutes % 60 > 0
+                              ? `${event.durationMinutes % 60}m`
                               : ""}
                           </Badge>
                         )}
@@ -248,19 +311,21 @@ function ScheduleTimeline({
   );
 }
 
-
-
-// メインコンポーネント（サーバーコンポーネント）
+// メインコンポーネント
 export default async function TripOverview({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id: tripId } = await params;
-  const trip = await getTripData(tripId);
-  const scheduleEvents = await getTripSchedule(tripId);
+  const { userId } = await auth();
+  
+  if (!userId) {
+    notFound();
+  }
 
-  // 旅行が見つからない場合は404ページを表示
+  const { id: tripId } = await params;
+  const trip = await getTripData(tripId, userId);
+
   if (!trip) {
     notFound();
   }
@@ -269,182 +334,197 @@ export default async function TripOverview({
   const tripDuration = calculateTripDuration(trip.startDate, trip.endDate);
 
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-6 px-4 max-w-6xl space-y-8">
       {/* ヘッダー */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{trip.name}</h1>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+            {trip.name}
+          </h1>
           <div className="flex items-center gap-2 mt-2">
-            <Badge className={getStatusColor(trip.status)}>{trip.status}</Badge>
+            {getStatusBadge(trip.status)}
+            <Badge variant="outline" className="text-sm">
+              {trip._count?.users || 0}人参加
+            </Badge>
           </div>
         </div>
-        <div>
-          <Card>
-            <CardContent className="flex flex-row items-center justify-center text-center px-4 py-2">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-red-500">{countdown.text}</p>
-                <p className="text-muted-foreground">{countdown.subText}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* 旅行概要とカウントダウン */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>旅行概要</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full">
-                  <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">日程</p>
-                  <p className="font-medium">{trip.date || "未定"}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="bg-green-100 dark:bg-green-900 p-2 rounded-full">
-                  <MapPin className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">目的地</p>
-                  <p className="font-medium">{trip.destination || "未定"}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="bg-purple-100 dark:bg-purple-900 p-2 rounded-full">
-                  <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">参加者</p>
-                  <p className="font-medium">{trip.members?.length || 0}人</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="bg-amber-100 dark:bg-amber-900 p-2 rounded-full">
-                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">期間</p>
-                  <p className="font-medium">
-                    {tripDuration > 0 ? `${tripDuration}日間` : "未定"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t">
-              <h3 className="font-medium mb-3">参加メンバー</h3>
-              <div className="flex flex-wrap gap-2">
-                {trip.members && trip.members.length > 0 ? (
-                  trip.members.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-1"
-                    >
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={member.avatar} alt={member.name} />
-                        <AvatarFallback>
-                          {member.name?.substring(0, 2) || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{member.name}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-sm">メンバーが登録されていません</p>
-                )}
-              </div>
+        <Card className="sm:w-auto">
+          <CardContent className="flex items-center justify-center text-center px-6 py-4">
+            <div>
+              <p className="text-4xl font-bold bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
+                {countdown.text}
+              </p>
+              <p className="text-muted-foreground text-sm">{countdown.subText}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 旅行スケジュールとタスク管理 */}
-      <div className="grid grid-cols-1 gap-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>旅行スケジュール</CardTitle>
-                <CardDescription>
-                  ドラッグ&ドロップで調整されたスケジュール
-                </CardDescription>
+      {/* 旅行概要 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            旅行概要
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950">
+              <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full">
+                <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground">日程</p>
+                <p className="font-medium">
+                  {trip.startDate && trip.endDate 
+                    ? `${trip.startDate.toLocaleDateString()} - ${trip.endDate.toLocaleDateString()}`
+                    : "未定"
+                  }
+                </p>
+              </div>
+            </div>
 
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950">
+              <div className="bg-green-100 dark:bg-green-900 p-2 rounded-full">
+                <MapPin className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">目的地</p>
+                <p className="font-medium">{trip.destination}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950">
+              <div className="bg-purple-100 dark:bg-purple-900 p-2 rounded-full">
+                <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">参加者</p>
+                <p className="font-medium">{trip.users.length}人</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950">
+              <div className="bg-amber-100 dark:bg-amber-900 p-2 rounded-full">
+                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">期間</p>
+                <p className="font-medium">
+                  {tripDuration > 0 ? `${tripDuration}日間` : "未定"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t">
+            <h3 className="font-medium mb-3">参加メンバー</h3>
+            <div className="flex flex-wrap gap-2">
+              {trip.users.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={member.profileImage || ""} alt={member.displayName} />
+                    <AvatarFallback className="text-xs bg-gradient-to-r from-blue-500 to-teal-500 text-white">
+                      {member.displayName.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">{member.displayName}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 旅行スケジュール */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5" />
+                旅行スケジュール
+              </CardTitle>
+              <CardDescription>
+                確定されたスケジュール（{trip.events.length}件）
+              </CardDescription>
+            </div>
+            <Link href={`/trip/${tripId}/schedule`}>
+              <Button className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700">
+                <Edit className="h-4 w-4 mr-2" />
+                編集
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {trip.events.length > 0 ? (
+            <ScheduleTimeline events={trip.events} />
+          ) : (
+            <div className="text-center py-12">
+              <CalendarDays className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                スケジュールが設定されていません
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                スケジュールを作成して旅行の計画を立てましょう
+              </p>
               <Link href={`/trip/${tripId}/schedule`}>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  編集
+                <Button className="bg-gradient-to-r from-blue-600 to-teal-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  スケジュールを作成
                 </Button>
               </Link>
             </div>
-          </CardHeader>
-          <CardContent>
-            {scheduleEvents && scheduleEvents.length > 0 ? (
-              <ScheduleTimeline scheduleEvents={scheduleEvents} />
-            ) : (
-              <div className="text-center py-8">
-                <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  スケジュールが設定されていません
-                </p>
-                <Link href={`/trip/${tripId}/schedule`}>
-                  <Button variant="outline" className="mt-4">
-                    スケジュールを作成
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 最近の更新 */}
       <Card>
         <CardHeader>
-          <CardTitle>最近の更新</CardTitle>
-          <CardDescription>旅行の最新情報</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            最近の更新
+          </CardTitle>
+          <CardDescription>旅行の最新アクティビティ</CardDescription>
         </CardHeader>
         <CardContent>
-          {trip.recentUpdates && trip.recentUpdates.length > 0 ? (
+          {trip.activityLogs.length > 0 ? (
             <div className="space-y-4">
-              {trip.recentUpdates.map((update) => (
+              {trip.activityLogs.map((log) => (
                 <div
-                  key={update.id}
-                  className="flex items-start gap-3 pb-3 border-b last:border-0 last:pb-0"
+                  key={log.id}
+                  className="flex items-start gap-3 pb-4 border-b last:border-0 last:pb-0"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      {update.user?.substring(0, 2) || "?"}
+                    <AvatarImage src={log.user?.profileImage || ""} />
+                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-teal-500 text-white">
+                      {log.user?.displayName?.substring(0, 2).toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p>
-                      <span className="font-medium">{update.user}</span>さんが
-                      <span className="text-muted-foreground">
-                        {update.action}
-                      </span>
+                  <div className="flex-1">
+                    <p className="text-sm">
+                      <span className="font-medium">{log.user?.displayName || "不明なユーザー"}</span>さんが
+                      <span className="ml-1">{log.description}</span>
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {update.time}
-                    </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      <Clock className="h-3 w-3" />
+                      {timeAgo(log.createdAt)}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-center py-6">
-              最近の更新はありません
-            </p>
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">最近の更新はありません</p>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Plus } from "lucide-react";
 import AddEventDialog from "@/components/schedule/dialog/add-event-dialog";
-import { tripData, tripScheduleData } from "@/lib/mockdeta";
+import {  tripScheduleData } from "@/lib/mockdeta";
 import ScheduleDragDropClient from "@/components/schedule/schedule-drag-drop-client";
 import { ScheduleDataType } from "@/types/types";
 
