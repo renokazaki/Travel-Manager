@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, Users, Plus, MapPin, Plane, Settings, Search, Calendar } from "lucide-react";
 import { FriendsData, travelGroups, recentActivities } from "@/lib/mockdeta";
@@ -13,7 +12,7 @@ import { FriendsDataType, RecentActivityDataType, TravelGroupDataType } from "@/
 
 // クライアントコンポーネントのインポート
 import { CreateTripButton } from "@/components/home/create-trip-button";
-import { SearchInput } from "@/components/home/serach-input";
+import { SignedIn, UserButton } from "@clerk/nextjs";
 
 // メンバー表示コンポーネント（サーバーコンポーネント）
 function MemberAvatars({ members, maxDisplay = 4 }: { members: any[], maxDisplay?: number }) {
@@ -141,22 +140,20 @@ export default async function Home() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      {/* ヘッダー部分 */}
+    <div className="container mx-auto py-4 px-4">
       <div className="flex justify-between items-center mb-8">
-        <div>
+   
+      {/* ヘッダー部分 */}
+      <div className="flex items-center">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
             マイページ
           </h1>
-          <p className="text-muted-foreground">旅行計画と友達を管理</p>
-        </div>
+      </div>
+      <SignedIn>
+        <UserButton />
+      </SignedIn>
       </div>
 
-      {/* 検索バー */}
-      <div className="relative mb-8">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <SearchInput />
-      </div>
 
       {/* メインコンテンツ */}
       <Tabs defaultValue="trips" className="w-full">
