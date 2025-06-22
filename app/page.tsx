@@ -4,7 +4,7 @@ import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import {  CalendarCheck, DollarSign, Receipt, Plane, MessageSquare, Clock, Brain, Zap, Target, Smartphone, ArrowDown, Play, Code, Database, Shield } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-
+import GuestLogin from './(Auth)/GuestLogin';
 // リアルタイムタイピングエフェクト
 const TypeWriter = ({ text, delay = 0 }: { text: string; delay?: number }) => {
   const [displayText, setDisplayText] = useState('');
@@ -170,7 +170,7 @@ export default function InnovativeLanding() {
               <Link href="/sign-in">
             <Button className='hover:from-blue-200 hover:to-purple-200 cursor-pointer'>始める</Button>
               </Link>
-        {/* <GuestLogin /> */}
+        <GuestLogin />
             </motion.div>
           </div>
 

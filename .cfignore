@@ -1,7 +1,0 @@
-.next/cache/
-.next/server/
-.next/trace
-node_modules/
-.git/
-.env*
-*.log
