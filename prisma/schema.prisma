@@ -14,139 +14,83 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-
-// ユーザー管理（Clerk連携）
+// ユーザー管理
 model User {
   id           String   @id @default(cuid())
-  clerkId      String   @unique @map("clerk_id")
-  displayName  String   @map("display_name")
-  profileImage String?  @map("profile_image")
-  lineId       String?  @map("line_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  clerkId      String   @unique
+  displayName  String
+  profileImage String?
+  lineId       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // リレーション
-  tripMembers        TripMember[]
-  suggestedEvents    PendingEvent[]
-  availabilities     MemberAvailability[]
-  paymentRecords     PaymentRecord[]
-  paymentDetails     PaymentDetail[]
-  activityLogs       ActivityLog[]
+  trips Trip[]
 
   @@map("users")
 }
 
 // 旅行グループ
 model Trip {
-  id          String      @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   destination String
-  startDate   DateTime    @map("start_date") @db.Date
-  endDate     DateTime    @map("end_date") @db.Date
-  budget      Decimal?    @db.Money
+  startDate   DateTime?
+  endDate     DateTime?
   image       String?
-  status      TripStatus  @default(PLANNING)
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  status      TripStatus @default(PLANNING)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   // リレーション
-  members         TripMember[]
-  scheduleDays    ScheduleDay[]
-  pendingEvents   PendingEvent[]
-  availabilities  MemberAvailability[]
-  paymentRecords  PaymentRecord[]
-  activityLogs    ActivityLog[]
+  users                User[]
+  events               Event[]
+  memberAvailabilities MemberAvailability[]
+  paymentRecords       PaymentRecord[]
+  activityLogs         ActivityLog[]
 
   @@map("trips")
 }
 
-// 旅行メンバー（中間テーブル）
-model TripMember {
-  id        String   @id @default(cuid())
-  tripId    String   @map("trip_id")
-  clerkId   String   @map("clerk_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+// 統一されたイベントモデル
+model Event {
+  id          String      @id @default(cuid())
+  tripId      String
+  title       String
+  location    String?
+  type        EventType?
+  status      EventStatus @default(PENDING)
+
+  // スケジュール関連
+  date            DateTime? @db.Date
+  startTime       DateTime? @db.Time
+  endTime         DateTime? @db.Time
+  durationMinutes Int?
+  order           Int?
+
+  // 優先度・メモ
+  priority Priority?
+  notes    String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // リレーション
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [clerkId], references: [clerkId], onDelete: Cascade)
 
-  @@unique([tripId, clerkId])
-  @@map("trip_members")
-}
-
-// スケジュール日
-model ScheduleDay {
-  id        String   @id @default(cuid())
-  tripId    String   @map("trip_id")
-  date      DateTime @db.Date
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // リレーション
-  trip   Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  events ScheduleEvent[]
-
-  @@unique([tripId, date])
-  @@map("schedule_days")
-}
-
-// スケジュールイベント
-model ScheduleEvent {
-  id              String    @id @default(cuid())
-  scheduleDayId   String    @map("schedule_day_id")
-  title           String
-  location        String
-  type            EventType
-  startTime       DateTime  @map("start_time") @db.Time
-  endTime         DateTime  @map("end_time") @db.Time
-  durationMinutes Int       @map("duration_minutes")
-  order           Int
-  notes           String?   @db.Text
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  // リレーション
-  scheduleDay ScheduleDay @relation(fields: [scheduleDayId], references: [id], onDelete: Cascade)
-
-  @@map("schedule_events")
-}
-
-// 未確定イベント
-model PendingEvent {
-  id                       String       @id @default(cuid())
-  tripId                   String       @map("trip_id")
-  suggestedBy              String       @map("suggested_by")
-  title                    String
-  location                 String
-  type                     EventType
-  estimatedDurationMinutes Int          @map("estimated_duration_minutes")
-  priority                 Priority
-  notes                    String?      @db.Text
-  createdAt                DateTime     @default(now()) @map("created_at")
-  updatedAt                DateTime     @updatedAt @map("updated_at")
-
-  // リレーション
-  trip User @relation(fields: [suggestedBy], references: [clerkId], onDelete: Cascade)
-  Trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
-
-  @@map("pending_events")
+  @@map("events")
 }
 
 // 日程調整
 model MemberAvailability {
-  id        String               @id @default(cuid())
-  tripId    String               @map("trip_id")
-  clerkId   String               @map("clerk_id")
-  date      DateTime             @db.Date
+  id        String             @id @default(cuid())
+  tripId    String
+  clerkId   String
+  date      DateTime           @db.Date
   status    AvailabilityStatus
-  createdAt DateTime             @default(now()) @map("created_at")
-  updatedAt DateTime             @updatedAt @map("updated_at")
-
-  // リレーション
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [clerkId], references: [clerkId], onDelete: Cascade)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  Trip      Trip               @relation(fields: [tripId], references: [id])
 
   @@unique([tripId, clerkId, date])
   @@map("member_availabilities")
@@ -155,21 +99,17 @@ model MemberAvailability {
 // 支払い記録
 model PaymentRecord {
   id          String   @id @default(cuid())
-  tripId      String   @map("trip_id")
-  paidBy      String   @map("paid_by")
+  tripId      String
+  paidBy      String
   title       String
-  amount      Decimal  @db.Money
+  amount      Decimal
   category    String
-  paymentDate DateTime @map("payment_date") @db.Date
+  paymentDate DateTime
   description String   @db.Text
-  isSettled   Boolean  @default(false) @map("is_settled")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // リレーション
-  trip    Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  payer   User            @relation(fields: [paidBy], references: [clerkId], onDelete: Cascade)
-  details PaymentDetail[]
+  isSettled   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  Trip        Trip     @relation(fields: [tripId], references: [id])
 
   @@map("payment_records")
 }
@@ -177,15 +117,11 @@ model PaymentRecord {
 // 支払い詳細（誰の分を支払ったか）
 model PaymentDetail {
   id              String   @id @default(cuid())
-  paymentRecordId String   @map("payment_record_id")
-  clerkId         String   @map("clerk_id")
-  splitAmount     Decimal  @map("split_amount") @db.Money
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  // リレーション
-  paymentRecord PaymentRecord @relation(fields: [paymentRecordId], references: [id], onDelete: Cascade)
-  user          User          @relation(fields: [clerkId], references: [clerkId], onDelete: Cascade)
+  paymentRecordId String
+  clerkId         String
+  splitAmount     Decimal
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([paymentRecordId, clerkId])
   @@map("payment_details")
@@ -194,58 +130,66 @@ model PaymentDetail {
 // 活動履歴
 model ActivityLog {
   id          String     @id @default(cuid())
-  tripId      String     @map("trip_id")
-  clerkId     String     @map("clerk_id")
-  targetType  TargetType @map("target_type")
-  targetId    String     @map("target_id")
+  tripId      String
+  clerkId     String
+  targetType  TargetType
+  targetId    String
   description String     @db.Text
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-
-  // リレーション
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [clerkId], references: [clerkId], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  Trip        Trip       @relation(fields: [tripId], references: [id])
 
   @@map("activity_logs")
 }
 
 // Enums
 enum TripStatus {
-  PLANNING @map("計画中")
+  PLANNING  @map("計画中")
   CONFIRMED @map("確定")
   COMPLETED @map("完了")
 
   @@map("trip_status")
 }
 
+enum EventStatus {
+  PENDING   @map("候補")
+  SCHEDULED @map("確定")
+  CANCELLED @map("キャンセル")
+  COMPLETED @map("完了")
+
+  @@map("event_status")
+}
+
 enum EventType {
-  ACCOMMODATION @map("accommodation")
-  FOOD @map("food")
-  ACTIVITY @map("activity")
+  ACCOMMODATION  @map("accommodation")
+  FOOD           @map("food")
+  ACTIVITY       @map("activity")
+  TRANSPORTATION @map("transportation")
+  OTHER          @map("other")
 
   @@map("event_type")
 }
 
 enum Priority {
-  HIGH @map("high")
+  HIGH   @map("high")
   MEDIUM @map("medium")
-  LOW @map("low")
+  LOW    @map("low")
 
   @@map("priority")
 }
 
 enum AvailabilityStatus {
-  AVAILABLE @map("available")
+  AVAILABLE   @map("available")
   UNAVAILABLE @map("unavailable")
-  MAYBE @map("maybe")
+  MAYBE       @map("maybe")
 
   @@map("availability_status")
 }
 
 enum TargetType {
-  TRIP @map("trip")
-  EVENT @map("event")
-  PAYMENT @map("payment")
+  TRIP     @map("trip")
+  EVENT    @map("event")
+  PAYMENT  @map("payment")
   SCHEDULE @map("schedule")
 
   @@map("target_type")
