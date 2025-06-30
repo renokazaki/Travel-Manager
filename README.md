@@ -1,3 +1,4 @@
 # Travel-Manager
 開発中です
-サーバーアクション
+nextjs15とreact19
+サーバーアクションをメインに使用
